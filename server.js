@@ -7,12 +7,10 @@ const connections = new Map(); // playerId -> websocket
 let messageId = 0;
 
 wss.on('connection', (ws) => {
-    // Generate unique player ID
     const playerId = Math.random().toString(36).substr(2, 9);
 
     console.log(`Player ${playerId} connected`);
 
-    // Assign random color to player
     const colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22, 0x34495e];
     const playerColor = colors[Math.floor(Math.random() * colors.length)];
 
@@ -23,126 +21,115 @@ wss.on('connection', (ws) => {
         rotation: 0
     });
 
-    // Store connection
     connections.set(playerId, ws);
-    playerId: playerId,
+
+    ws.send(JSON.stringify({
+        type: 'init',
+        playerId: playerId,
         color: playerColor
-}));
+    }));
 
-// Send current players to new player
-const currentPlayers = Array.from(players.values()).filter(p => p.id !== playerId);
-ws.send(JSON.stringify({
-    type: 'players',
-    players: currentPlayers
-}));
+    const currentPlayers = Array.from(players.values()).filter(p => p.id !== playerId);
+    ws.send(JSON.stringify({
+        type: 'players',
+        players: currentPlayers
+    }));
 
-// Broadcast new player to all other players
-broadcast({
-    type: 'playerJoined',
-    player: players.get(playerId)
-}, playerId);
-
-// Send welcome message
-broadcast({
-    type: 'chat',
-    id: messageId++,
-    playerId: 'system',
-    username: 'System',
-    message: `Player ${playerId.substr(0, 6)} joined the metaverse!`,
-    timestamp: Date.now()
-});
-
-ws.on('message', (data) => {
-    try {
-        const message = JSON.parse(data.toString());
-
-        switch (message.type) {
-            case 'position':
-                // Update player position
-                if (players.has(playerId)) {
-                    players.get(playerId).position = message.position;
-                    players.get(playerId).rotation = message.rotation;
-
-                    // Broadcast position to all other players
-                    broadcast({
-                        type: 'playerMoved',
-                        playerId: playerId,
-                        position: message.position,
-                        rotation: message.rotation
-                    }, playerId);
-                }
-                break;
-
-            case 'chat':
-                // Handle private or broadcast chat message
-                if (message.private && message.toPlayerId) {
-                    // Private message - send only to sender and recipient
-                    const privateMsg = {
-                        type: 'chat',
-                        id: messageId++,
-                        playerId: playerId,
-                        username: message.username || playerId.substr(0, 6),
-                        message: message.message,
-                        timestamp: Date.now(),
-                        private: true
-                    };
-
-                    // Send to sender
-                    if (connections.has(playerId)) {
-                        connections.get(playerId).send(JSON.stringify(privateMsg));
-                    }
-
-                    // Send to recipient
-                    if (connections.has(message.toPlayerId)) {
-                        connections.get(message.toPlayerId).send(JSON.stringify(privateMsg));
-                    }
-                } else {
-                    // Broadcast chat message to all players
-                    broadcast({
-                        type: 'chat',
-                        id: messageId++,
-                        playerId: playerId,
-                        username: message.username || playerId.substr(0, 6),
-                        message: message.message,
-                        timestamp: Date.now(),
-                        private: false
-                    });
-                }
-                break;
-        }
-    } catch (error) {
-        console.error('Error parsing message:', error);
-    }
-});
-
-ws.on('close', () => {
-    console.log(`Player ${playerId} disconnected`);
-    players.delete(playerId);
-    connections.delete(playerId);
-
-    // Broadcast player left to all other players
     broadcast({
-        type: 'playerLeft',
-        playerId: playerId
-    });
+        type: 'playerJoined',
+        player: players.get(playerId)
+    }, playerId);
 
-    // Send disconnect message
     broadcast({
         type: 'chat',
         id: messageId++,
         playerId: 'system',
         username: 'System',
-        message: `Player ${playerId.substr(0, 6)} left the metaverse`,
+        message: `Player ${playerId.substr(0, 6)} joined the metaverse!`,
         timestamp: Date.now()
     });
-});
+
+    ws.on('message', (data) => {
+        try {
+            const message = JSON.parse(data.toString());
+
+            switch (message.type) {
+                case 'position':
+                    if (players.has(playerId)) {
+                        players.get(playerId).position = message.position;
+                        players.get(playerId).rotation = message.rotation;
+
+                        broadcast({
+                            type: 'playerMoved',
+                            playerId: playerId,
+                            position: message.position,
+                            rotation: message.rotation
+                        }, playerId);
+                    }
+                    break;
+
+                case 'chat':
+                    if (message.private && message.toPlayerId) {
+                        const privateMsg = {
+                            type: 'chat',
+                            id: messageId++,
+                            playerId: playerId,
+                            username: message.username || playerId.substr(0, 6),
+                            message: message.message,
+                            timestamp: Date.now(),
+                            private: true
+                        };
+
+                        if (connections.has(playerId)) {
+                            connections.get(playerId).send(JSON.stringify(privateMsg));
+                        }
+
+                        if (connections.has(message.toPlayerId)) {
+                            connections.get(message.toPlayerId).send(JSON.stringify(privateMsg));
+                        }
+                    } else {
+                        broadcast({
+                            type: 'chat',
+                            id: messageId++,
+                            playerId: playerId,
+                            username: message.username || playerId.substr(0, 6),
+                            message: message.message,
+                            timestamp: Date.now(),
+                            private: false
+                        });
+                    }
+                    break;
+            }
+        } catch (error) {
+            console.error('Error parsing message:', error);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log(`Player ${playerId} disconnected`);
+        players.delete(playerId);
+        connections.delete(playerId);
+
+        broadcast({
+            type: 'playerLeft',
+            playerId: playerId
+        });
+
+        broadcast({
+            type: 'chat',
+            id: messageId++,
+            playerId: 'system',
+            username: 'System',
+            message: `Player ${playerId.substr(0, 6)} left the metaverse`,
+            timestamp: Date.now()
+        });
+    });
 });
 
 function broadcast(message, excludePlayerId = null) {
     const messageStr = JSON.stringify(message);
     wss.clients.forEach((client) => {
-        if (client.readyState === 1) { // WebSocket.OPEN
-            // Send to all except the excluded player
+        if (client.readyState === 1) {
             const shouldSend = excludePlayerId === null ||
                 !players.has(excludePlayerId) ||
                 Array.from(players.keys()).indexOf(excludePlayerId) !==

@@ -221,6 +221,8 @@ document.addEventListener('click', (e) => {
                 selectPlayer(playerId);
             }
         });
+    } else {
+        deselectPlayer();
     }
 });
 
@@ -233,7 +235,11 @@ function selectPlayer(playerId) {
         selectedPlayerIndicator.textContent = 'Private chat with ' + playerId.substr(0, 6) + ' (Click to deselect)';
         selectedPlayerIndicator.style.display = 'block';
         chatHeader.textContent = 'Private Chat with ' + playerId.substr(0, 6);
-        deselectPlayer();
+        chatHeader.className = 'private';
+
+        selectedPlayerIndicator.onclick = () => {
+            deselectPlayer();
+        };
     }
 }
 
@@ -578,6 +584,9 @@ function addChatMessage(message) {
             <span class="timestamp">${time}</span>
         `;
     }
+
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
     while (chatMessages.children.length > 50) {
         chatMessages.removeChild(chatMessages.firstChild);
