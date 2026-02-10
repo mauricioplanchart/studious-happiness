@@ -117,6 +117,28 @@
             max-height: 400px;
         }
 
+        #chatTabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .chatTab {
+            flex: 1;
+            padding: 6px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .chatTab.active {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            font-weight: bold;
+        }
+
         #chatMessages {
             flex: 1;
             overflow-y: auto;
@@ -167,6 +189,27 @@
         #chatInputContainer {
             display: flex;
             gap: 5px;
+        }
+
+        #chatReactions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .reactionBtn {
+            flex: 1;
+            padding: 6px 0;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .reactionBtn:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         #chatInput {
@@ -266,10 +309,20 @@
     <div id="selectedPlayerIndicator"></div>
     <div id="chatContainer">
         <div id="chatHeader">💬 Global Chat (Click player to private chat)</div>
+        <div id="chatTabs">
+            <button class="chatTab active" data-tab="global">Global</button>
+            <button class="chatTab" data-tab="private">Private</button>
+        </div>
         <div id="chatMessages"></div>
         <div id="chatInputContainer">
             <input type="text" id="chatInput" placeholder="Type a message... (T to focus)" maxlength="200">
             <button id="chatSend">Send</button>
+        </div>
+        <div id="chatReactions">
+            <button class="reactionBtn" data-reaction="👍">👍</button>
+            <button class="reactionBtn" data-reaction="❤️">❤️</button>
+            <button class="reactionBtn" data-reaction="😂">😂</button>
+            <button class="reactionBtn" data-reaction="🎉">🎉</button>
         </div>
     </div>
     <div id="instructions">

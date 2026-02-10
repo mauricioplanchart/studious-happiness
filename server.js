@@ -69,6 +69,28 @@ wss.on('connection', (ws) => {
                     }
                     break;
 
+                case 'typing':
+                    broadcast({
+                        type: 'typing',
+                        playerId: playerId,
+                        isTyping: !!message.isTyping
+                    }, playerId);
+                    break;
+
+                case 'reaction':
+                    if (message.reaction) {
+                        const playerName = players.get(playerId)?.name;
+                        const displayName = playerName && playerName.length > 0 ? playerName : playerId.substr(0, 6);
+                        broadcast({
+                            type: 'reaction',
+                            playerId: playerId,
+                            username: displayName,
+                            reaction: message.reaction,
+                            timestamp: Date.now()
+                        });
+                    }
+                    break;
+
                 case 'setName':
                     if (players.has(playerId)) {
                         const cleanName = (message.name || '').toString().trim().slice(0, 16);

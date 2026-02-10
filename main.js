@@ -439,6 +439,7 @@ let localPlayerId = null;
 let ws = null;
 const speechBubbleTimeouts = new Map();
 let hasInit = false;
+const typingTimeouts = new Map();
 
 function createSpeechBubble(text) {
     const canvas = document.createElement('canvas');
@@ -526,6 +527,24 @@ function showSpeechBubble(playerId, message) {
     }, 4000);
 
     speechBubbleTimeouts.set(playerId, timeoutId);
+}
+
+function showTypingIndicator(playerId, isTyping) {
+    const avatar = playerId === localPlayerId ? localPlayer : otherPlayers.get(playerId);
+    if (!avatar) return;
+
+    if (isTyping) {
+        if (!avatar.userData.typingBubble) {
+            const bubble = createSpeechBubble('typing...');
+            bubble.sprite.position.y = 10.5;
+            avatar.add(bubble.sprite);
+            avatar.userData.typingBubble = bubble;
+        }
+    } else if (avatar.userData.typingBubble) {
+        avatar.remove(avatar.userData.typingBubble.sprite);
+        avatar.userData.typingBubble.texture.dispose();
+        avatar.userData.typingBubble = null;
+    }
 }
 
 // Create avatar for other players
@@ -676,6 +695,16 @@ function connectMultiplayer() {
                     }
                     break;
 
+                case 'typing':
+                    if (message.playerId) {
+                        showTypingIndicator(message.playerId, message.isTyping);
+                    }
+                    break;
+
+                case 'reaction':
+                    addReactionMessage(message);
+                    break;
+
                 case 'chat':
                     addChatMessage(message);
                     break;
@@ -721,8 +750,45 @@ const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
 const connectionStatus = document.getElementById('connectionStatus');
+const chatTabs = document.querySelectorAll('.chatTab');
+const reactionButtons = document.querySelectorAll('.reactionBtn');
 
 let isChatFocused = false;
+let currentChatTab = 'global';
+let isTyping = false;
+let typingTimer = null;
+
+function applyChatFilter() {
+    const items = Array.from(chatMessages.children);
+    items.forEach((item) => {
+        const isPrivate = item.dataset.private === 'true';
+        const isSystem = item.dataset.system === 'true';
+        if (currentChatTab === 'private') {
+            item.style.display = isPrivate ? 'block' : 'none';
+        } else {
+            item.style.display = isSystem || !isPrivate ? 'block' : 'none';
+        }
+    });
+}
+
+chatTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+        chatTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentChatTab = tab.dataset.tab;
+        applyChatFilter();
+    });
+});
+
+reactionButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({
+            type: 'reaction',
+            reaction: button.dataset.reaction
+        }));
+    });
+});
 
 function updateConnectionStatus() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -740,6 +806,8 @@ setInterval(updateConnectionStatus, 2000);
 function addChatMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chatMessage';
+    messageDiv.dataset.private = message.private ? 'true' : 'false';
+    messageDiv.dataset.system = message.playerId === 'system' ? 'true' : 'false';
 
     if (message.private) {
         messageDiv.classList.add('private');
@@ -769,10 +837,37 @@ function addChatMessage(message) {
 
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    applyChatFilter();
 
     while (chatMessages.children.length > 50) {
         chatMessages.removeChild(chatMessages.firstChild);
     }
+}
+
+function addReactionMessage(message) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chatMessage';
+    messageDiv.dataset.private = 'false';
+    messageDiv.dataset.system = 'false';
+
+    const time = new Date(message.timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    messageDiv.innerHTML = `
+        <span class="username">${message.username}:</span>
+        ${escapeHtml(message.reaction)}
+        <span class="timestamp">${time}</span>
+    `;
+
+    if (message.playerId) {
+        showSpeechBubble(message.playerId, message.reaction);
+    }
+
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    applyChatFilter();
 }
 
 function escapeHtml(text) {
@@ -797,6 +892,14 @@ function sendChatMessage() {
         }
 
         ws.send(JSON.stringify(chatData));
+        if (isTyping) {
+            ws.send(JSON.stringify({ type: 'typing', isTyping: false }));
+            isTyping = false;
+        }
+        if (typingTimer) {
+            clearTimeout(typingTimer);
+            typingTimer = null;
+        }
         if (localPlayerId) {
             showSpeechBubble(localPlayerId, message);
         }
@@ -814,12 +917,38 @@ chatInput.addEventListener('keydown', (e) => {
     e.stopPropagation();
 });
 
+chatInput.addEventListener('input', () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!isTyping) {
+        ws.send(JSON.stringify({ type: 'typing', isTyping: true }));
+        isTyping = true;
+    }
+    if (typingTimer) {
+        clearTimeout(typingTimer);
+    }
+    typingTimer = setTimeout(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'typing', isTyping: false }));
+        }
+        isTyping = false;
+        typingTimer = null;
+    }, 1500);
+});
+
 chatInput.addEventListener('focus', () => {
     isChatFocused = true;
 });
 
 chatInput.addEventListener('blur', () => {
     isChatFocused = false;
+    if (ws && ws.readyState === WebSocket.OPEN && isTyping) {
+        ws.send(JSON.stringify({ type: 'typing', isTyping: false }));
+    }
+    isTyping = false;
+    if (typingTimer) {
+        clearTimeout(typingTimer);
+        typingTimer = null;
+    }
 });
 
 // Animation loop
