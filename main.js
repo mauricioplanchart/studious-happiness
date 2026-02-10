@@ -336,6 +336,9 @@ const nameInput = document.getElementById('playerNameInput');
 function startExperience() {
     if (gameStarted) return;
     desiredPlayerName = nameInput ? sanitizeName(nameInput.value) : '';
+    localPlayerName = desiredPlayerName || 'Player';
+    setAvatarName(localPlayer, localPlayerName);
+    nameSent = false;
     instructions.style.display = 'none';
     gameStarted = true;
     chatContainer.style.display = 'flex';
