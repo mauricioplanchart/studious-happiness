@@ -190,6 +190,63 @@ let cameraAngleH = 0; // Horizontal angle
 let cameraAngleV = 0.3; // Vertical angle (looking down slightly)
 const cameraDistance = 15;
 
+// Raycaster for clicking on avatars
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedPlayer = null;
+
+document.addEventListener('click', (e) => {
+    if (!gameStarted || isChatFocused) return;
+
+    // Calculate mouse position in normalized device coordinates
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    // Update raycaster
+    raycaster.setFromCamera(mouse, camera);
+
+    // Check for intersections with other players
+    const clickableObjects = [];
+    otherPlayers.forEach((avatar) => {
+        avatar.children.forEach(child => clickableObjects.push(child));
+    });
+
+    const intersects = raycaster.intersectObjects(clickableObjects);
+
+    if (intersects.length > 0) {
+        // Find which player was clicked
+        const clickedObject = intersects[0].object;
+        otherPlayers.forEach((avatar, playerId) => {
+            if (avatar.children.includes(clickedObject)) {
+                selectPlayer(playerId);
+            }
+        });
+    }
+});
+
+function selectPlayer(playerId) {
+    selectedPlayer = playerId;
+    const selectedPlayerIndicator = document.getElementById('selectedPlayerIndicator');
+    const chatHeader = document.getElementById('chatHeader');
+
+    if (selectedPlayer) {
+        selectedPlayerIndicator.textContent = 'Private chat with ' + playerId.substr(0, 6) + ' (Click to deselect)';
+        selectedPlayerIndicator.style.display = 'block';
+        chatHeader.textContent = 'Private Chat with ' + playerId.substr(0, 6);
+        deselectPlayer();
+    }
+}
+
+function deselectPlayer() {
+    selectedPlayer = null;
+    const selectedPlayerIndicator = document.getElementById('selectedPlayerIndicator');
+    const chatHeader = document.getElementById('chatHeader');
+
+    selectedPlayerIndicator.style.display = 'none';
+    chatHeader.textContent = 'Global Chat (Click player to private chat)';
+    chatHeader.className = '';
+}
+
 document.addEventListener('mousedown', (e) => {
     if (!isChatFocused && gameStarted) {
         mouseDown = true;
@@ -500,6 +557,10 @@ function addChatMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chatMessage';
 
+    if (message.private) {
+        messageDiv.classList.add('private');
+    }
+
     if (message.playerId === 'system') {
         messageDiv.classList.add('system');
         messageDiv.textContent = message.message;
@@ -509,17 +570,15 @@ function addChatMessage(message) {
             minute: '2-digit'
         });
 
+        const privateLabel = message.private ? '<strong>[Private]</strong> ' : '';
+
         messageDiv.innerHTML = `
-            <span class="username">${message.username}:</span>
+            ${privateLabel}<span class="username">${message.username}:</span>
             ${escapeHtml(message.message)}
             <span class="timestamp">${time}</span>
         `;
     }
 
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // Keep only last 50 messages
     while (chatMessages.children.length > 50) {
         chatMessages.removeChild(chatMessages.firstChild);
     }
@@ -534,11 +593,19 @@ function escapeHtml(text) {
 function sendChatMessage() {
     const message = chatInput.value.trim();
     if (message && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
+        const chatData = {
             type: 'chat',
             username: localPlayerId ? localPlayerId.substr(0, 6) : 'Anonymous',
             message: message
-        }));
+        };
+
+        // If a player is selected, send private message
+        if (selectedPlayer) {
+            chatData.private = true;
+            chatData.toPlayerId = selectedPlayer;
+        }
+
+        ws.send(JSON.stringify(chatData));
         chatInput.value = '';
     }
 }

@@ -196,12 +196,55 @@
         #connectionStatus.disconnected {
             background: rgba(231, 76, 60, 0.8);
         }
+
+        #selectedPlayerIndicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 10px 15px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 13px;
+            display: none;
+            cursor: pointer;
+        }
+
+        #selectedPlayerIndicator:hover {
+            opacity: 0.85;
+        }
+
+        #chatHeader {
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        #chatHeader.private {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #chatHeader .close-private {
+            float: right;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        .chatMessage.private {
+            background: rgba(103, 126, 234, 0.3);
+            border-left: 3px solid #667eea;
+            padding-left: 8px;
+        }
     </style>
 </head>
 
 <body>
     <div id="connectionStatus"></div>
+    <div id="selectedPlayerIndicator"></div>
     <div id="chatContainer">
+        <div id="chatHeader">💬 Global Chat (Click player to private chat)</div>
         <div id="chatMessages"></div>
         <div id="chatInputContainer">
             <input type="text" id="chatInput" placeholder="Type a message... (T to focus)" maxlength="200">
@@ -214,6 +257,7 @@
         <div class="controls">
             <p><strong>WASD</strong> or <strong>Arrow Keys</strong> - Move your avatar</p>
             <p><strong>Mouse Drag</strong> - Rotate camera</p>
+            <p><strong>Click Avatar</strong> - Private chat with player</p>
             <p><strong>Space</strong> - Jump</p>
             <p><strong>T</strong> - Open chat</p>
         </div>
