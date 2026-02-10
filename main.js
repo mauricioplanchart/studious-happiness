@@ -330,8 +330,11 @@ document.addEventListener('mousemove', (e) => {
 // Click to start
 let gameStarted = false;
 const instructions = document.getElementById('instructions');
-instructions.addEventListener('click', () => {
-    const nameInput = document.getElementById('playerNameInput');
+const startButton = document.getElementById('startButton');
+const nameInput = document.getElementById('playerNameInput');
+
+function startExperience() {
+    if (gameStarted) return;
     desiredPlayerName = nameInput ? sanitizeName(nameInput.value) : '';
     instructions.style.display = 'none';
     gameStarted = true;
@@ -339,7 +342,17 @@ instructions.addEventListener('click', () => {
     connectionStatus.style.display = 'block';
     updateConnectionStatus();
     applyLocalName();
-});
+}
+
+startButton.addEventListener('click', startExperience);
+
+if (nameInput) {
+    nameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            startExperience();
+        }
+    });
+}
 
 // Movement
 const moveSpeed = 0.3;
