@@ -51,11 +51,13 @@ Congratulations! Your complete robot control system is ready. Here's what you ha
 - Choose between ESP32 or Arduino option
 - Purchase from recommended stores
 - Budget: $40-$90
+- Optional: Phone mount for face mode ($5-15)
 
 ### 2. **Build Your Robot** 🔧
 - Follow [docs/ASSEMBLY_GUIDE.md](docs/ASSEMBLY_GUIDE.md)
 - Assemble chassis and mount components
 - Connect all wires following [docs/WIRING_DIAGRAM.md](docs/WIRING_DIAGRAM.md)
+- Mount your phone as the robot face (optional)
 - Time needed: 1-2 hours
 
 ### 3. **Program the Hardware** 💻
@@ -86,6 +88,7 @@ Congratulations! Your complete robot control system is ready. Here's what you ha
 | [ASSEMBLY_GUIDE.md](docs/ASSEMBLY_GUIDE.md) | How to assemble |
 | [WIRING_DIAGRAM.md](docs/WIRING_DIAGRAM.md) | Pin connections |
 | [FAQ.md](docs/FAQ.md) | Common questions |
+| [PHONE_FACE_GUIDE.md](docs/PHONE_FACE_GUIDE.md) | 🤖 Use phone as robot face |
 
 ## 🎮 Features of Your Robot
 
@@ -94,6 +97,7 @@ Congratulations! Your complete robot control system is ready. Here's what you ha
 ✅ **Variable Speed** - 10 speed levels (0-9)  
 ✅ **Simple UI** - Easy-to-use touch controls  
 ✅ **Real-time Commands** - Instant response  
+✅ **🤖 Robot Face Mode** - Use phone as expressive robot face!  
 ✅ **Expandable** - Easy to add sensors and features  
 
 ## 🛠️ Technical Details

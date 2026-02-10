@@ -6,6 +6,8 @@ An Android application to control robot hardware using your smartphone.
 - Bluetooth communication with robot hardware
 - Simple control interface (directional controls)
 - Real-time command sending
+- **🤖 Robot Face Mode - Use your phone as an expressive robot face!**
+- Variable speed control
 - Compatible with Arduino/ESP32 based robots
 
 ## Hardware Requirements
@@ -87,6 +89,16 @@ Commands sent from Android to robot:
 - `S` - Stop
 - `0-9` - Speed control (0=stop, 9=max)
 
+## Robot Face Mode 🤖
+
+NEW! Your phone can now act as the robot's face with:
+- **7 Expressions:** Happy, Excited, Surprised, Angry, Sad, Thinking, Sleeping
+- **Auto-blinking eyes** for realistic animations
+- **Touch controls** to change expressions
+- **Always-on display** while in face mode
+
+See [docs/PHONE_FACE_GUIDE.md](docs/PHONE_FACE_GUIDE.md) for mounting instructions!
+
 ## Building the App
 1. Open project in Android Studio
 2. Sync Gradle files
@@ -99,6 +111,8 @@ Commands sent from Android to robot:
 - Autonomous mode
 - Multiple robot control
 - Voice commands
+- Reactive expressions based on robot state
+- Custom face designs
 
 ## License
 MIT License

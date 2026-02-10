@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -7,7 +6,7 @@ scene.background = new THREE.Color(0x87CEEB); // Sky blue
 scene.fog = new THREE.Fog(0x87CEEB, 0, 750);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 10, 30);
+camera.position.set(0, 15, 20);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -104,102 +103,123 @@ for (let i = 0; i < 20; i++) {
     // Avoid placing trees too close to center
     if (Math.abs(x) > 20 || Math.abs(z) > 20) {
         createTree(x, z);
-        // Create Avatar function
-        function createAvatar(x, z, color) {
-            const avatar = new THREE.Group();
-
-            // Body
-            const bodyGeometry = new THREE.BoxGeometry(1.5, 2.5, 0.8);
-            const bodyMaterial = new THREE.MeshStandardMaterial({ color: color || 0x3498db });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 3.5;
-            body.castShadow = true;
-            avatar.add(body);
-
-            // Head
-            const headGeometry = new THREE.SphereGeometry(0.6, 16, 16);
-            const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 5.6;
-            head.castShadow = true;
-            avatar.add(head);
-
-            // Left Arm
-            const armGeometry = new THREE.BoxGeometry(0.4, 1.8, 0.4);
-            const armMaterial = new THREE.MeshStandardMaterial({ color: color || 0x3498db });
-            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-            leftArm.position.set(-1, 3.5, 0);
-            leftArm.castShadow = true;
-            avatar.add(leftArm);
-
-            // Right Arm
-            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-            rightArm.position.set(1, 3.5, 0);
-            rightArm.castShadow = true;
-            avatar.add(rightArm);
-
-            // Left Leg
-            const legGeometry = new THREE.BoxGeometry(0.5, 2, 0.5);
-            const legMaterial = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
-            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-            leftLeg.position.set(-0.5, 1.2, 0);
-            leftLeg.castShadow = true;
-            avatar.add(leftLeg);
-
-            // Right Leg
-            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-            rightLeg.position.set(0.5, 1.2, 0);
-            rightLeg.castShadow = true;
-            avatar.add(rightLeg);
-
-            avatar.position.set(x, 0, z);
-            scene.add(avatar);
-
-            return avatar;
-        }
-
-        // Create NPC avatars with random colors
-        const avatars = [];
-        const avatarColors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22, 0x34495e];
-
-        for (let i = 0; i < 8; i++) {
-            const x = Math.random() * 160 - 80;
-            const z = Math.random() * 160 - 80;
-            const color = avatarColors[i % avatarColors.length];
-
-            // Avoid spawning too close to center
-            if (Math.abs(x) > 15 || Math.abs(z) > 15) {
-                const avatar = createAvatar(x, z, color);
-                avatar.userData.speed = Math.random() * 0.02 + 0.01;
-                avatar.userData.direction = Math.random() * Math.PI * 2;
-                avatars.push(avatar);
-            }
-        }
-
     }
 }
 
-// Controls
-const controls = new PointerLockControls(camera, document.body);
+// Create Avatar function
+function createAvatar(x, z, color) {
+    const avatar = new THREE.Group();
+
+    // Body
+    const bodyGeometry = new THREE.BoxGeometry(1.5, 2.5, 0.8);
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: color || 0x3498db });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = 3.5;
+    body.castShadow = true;
+    avatar.add(body);
+
+    // Head
+    const headGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+    const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.y = 5.6;
+    head.castShadow = true;
+    avatar.add(head);
+
+    // Left Arm
+    const armGeometry = new THREE.BoxGeometry(0.4, 1.8, 0.4);
+    const armMaterial = new THREE.MeshStandardMaterial({ color: color || 0x3498db });
+    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+    leftArm.position.set(-1, 3.5, 0);
+    leftArm.castShadow = true;
+    avatar.add(leftArm);
+
+    // Right Arm
+    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(1, 3.5, 0);
+    rightArm.castShadow = true;
+    avatar.add(rightArm);
+
+    // Left Leg
+    const legGeometry = new THREE.BoxGeometry(0.5, 2, 0.5);
+    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
+    const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+    leftLeg.position.set(-0.5, 1.2, 0);
+    leftLeg.castShadow = true;
+    avatar.add(leftLeg);
+
+    // Right Leg
+    const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+    rightLeg.position.set(0.5, 1.2, 0);
+    rightLeg.castShadow = true;
+    avatar.add(rightLeg);
+
+    avatar.position.set(x, 0, z);
+    scene.add(avatar);
+
+    return avatar;
+}
+
+// Create NPC avatars with random colors
+const avatars = [];
+const avatarColors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22, 0x34495e];
+
+for (let i = 0; i < 8; i++) {
+    const x = Math.random() * 160 - 80;
+    const z = Math.random() * 160 - 80;
+    const color = avatarColors[i % avatarColors.length];
+
+    // Avoid spawning too close to center
+    if (Math.abs(x) > 15 || Math.abs(z) > 15) {
+        const avatar = createAvatar(x, z, color);
+        avatar.userData.speed = Math.random() * 0.02 + 0.01;
+        avatar.userData.direction = Math.random() * Math.PI * 2;
+        avatars.push(avatar);
+    }
+}
+
+// Create local player avatar
+const localPlayer = createAvatar(0, 30, 0x00ff00); // Green color for local player
+localPlayer.position.y = 0;
+
+// Third-person camera controls
+let mouseDown = false;
+let mouseX = 0;
+let mouseY = 0;
+let cameraAngleH = 0; // Horizontal angle
+let cameraAngleV = 0.3; // Vertical angle (looking down slightly)
+const cameraDistance = 15;
+
+document.addEventListener('mousedown', (e) => {
+    if (!isChatFocused && gameStarted) {
+        mouseDown = true;
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    mouseDown = false;
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (mouseDown && gameStarted) {
+        cameraAngleH -= e.movementX * 0.002;
+        cameraAngleV = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraAngleV - e.movementY * 0.002));
+    }
+});
 
 // Click to start
+let gameStarted = false;
 const instructions = document.getElementById('instructions');
 instructions.addEventListener('click', () => {
-    controls.lock();
-});
-
-controls.addEventListener('lock', () => {
     instructions.style.display = 'none';
+    gameStarted = true;
+    chatContainer.style.display = 'flex';
+    connectionStatus.style.display = 'block';
+    updateConnectionStatus();
 });
-
-controls.addEventListener('unlock', () => {
-    instructions.style.display = 'flex';
-});
-
-scene.add(controls.getObject());
 
 // Movement
-const moveSpeed = 0.1;
+const moveSpeed = 0.3;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 
@@ -213,7 +233,7 @@ const keys = {
 
 window.addEventListener('keydown', (event) => {
     // T key to focus chat
-    if (event.code === 'KeyT' && !isChatFocused && controls.isLocked) {
+    if (event.code === 'KeyT' && !isChatFocused && gameStarted) {
         event.preventDefault();
         chatInput.focus();
         return;
@@ -441,11 +461,11 @@ function sendPositionUpdate() {
         ws.send(JSON.stringify({
             type: 'position',
             position: {
-                x: camera.position.x,
-                y: camera.position.y,
-                z: camera.position.z
+                x: localPlayer.position.x,
+                y: localPlayer.position.y,
+                z: localPlayer.position.z
             },
-            rotation: camera.rotation.y
+            rotation: localPlayer.rotation.y
         }));
         lastPositionUpdate = Date.now();
     }
@@ -462,18 +482,6 @@ const chatSend = document.getElementById('chatSend');
 const connectionStatus = document.getElementById('connectionStatus');
 
 let isChatFocused = false;
-
-// Show chat when game starts
-controls.addEventListener('lock', () => {
-    chatContainer.style.display = 'flex';
-    connectionStatus.style.display = 'block';
-    updateConnectionStatus();
-});
-
-controls.addEventListener('unlock', () => {
-    chatContainer.style.display = 'none';
-    connectionStatus.style.display = 'none';
-});
 
 function updateConnectionStatus() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -561,40 +569,50 @@ function animate() {
 
     const delta = clock.getDelta();
 
-    if (controls.isLocked) {
+    if (gameStarted) {
         // Apply gravity
         velocity.y += gravity;
 
-        // Calculate movement direction
+        // Calculate movement direction based on camera angle
         direction.z = Number(keys.forward) - Number(keys.backward);
         direction.x = Number(keys.right) - Number(keys.left);
         direction.normalize();
 
-        // Move the camera
-        if (keys.forward || keys.backward) {
-            velocity.z = direction.z * moveSpeed;
-        } else {
-            velocity.z = 0;
-        }
+        // Move the player avatar
+        if (keys.forward || keys.backward || keys.left || keys.right) {
+            const moveX = (direction.x * Math.cos(cameraAngleH) - direction.z * Math.sin(cameraAngleH)) * moveSpeed;
+            const moveZ = (direction.x * Math.sin(cameraAngleH) + direction.z * Math.cos(cameraAngleH)) * moveSpeed;
 
-        if (keys.left || keys.right) {
-            velocity.x = direction.x * moveSpeed;
-        } else {
-            velocity.x = 0;
-        }
+            localPlayer.position.x += moveX;
+            localPlayer.position.z += moveZ;
 
-        controls.moveRight(velocity.x);
-        controls.moveForward(-velocity.z);
+            // Rotate player to face movement direction if moving
+            if (Math.abs(moveX) > 0.01 || Math.abs(moveZ) > 0.01) {
+                localPlayer.rotation.y = Math.atan2(moveX, moveZ);
+            }
+        }
 
         // Update vertical position
-        camera.position.y += velocity.y * delta * 10;
+        localPlayer.position.y += velocity.y * delta * 10;
 
         // Ground collision
-        if (camera.position.y < 10) {
-            camera.position.y = 10;
+        if (localPlayer.position.y < 0) {
+            localPlayer.position.y = 0;
             velocity.y = 0;
             canJump = true;
         }
+
+        // Update camera to follow player (third-person)
+        const idealOffset = new THREE.Vector3(
+            Math.sin(cameraAngleH) * Math.cos(cameraAngleV) * cameraDistance,
+            Math.sin(cameraAngleV) * cameraDistance + 10,
+            Math.cos(cameraAngleH) * Math.cos(cameraAngleV) * cameraDistance
+        );
+
+        camera.position.x = localPlayer.position.x + idealOffset.x;
+        camera.position.y = localPlayer.position.y + idealOffset.y;
+        camera.position.z = localPlayer.position.z + idealOffset.z;
+        camera.lookAt(localPlayer.position.x, localPlayer.position.y + 5, localPlayer.position.z);
 
         // Send position update to server
         sendPositionUpdate();

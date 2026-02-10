@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnLeft: Button
     private lateinit var btnRight: Button
     private lateinit var btnStop: Button
+    private lateinit var btnFaceMode: Button
     private lateinit var spinnerDevices: Spinner
     private lateinit var seekBarSpeed: SeekBar
     private lateinit var tvStatus: TextView
@@ -53,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         btnLeft = findViewById(R.id.btnLeft)
         btnRight = findViewById(R.id.btnRight)
         btnStop = findViewById(R.id.btnStop)
+        btnFaceMode = findViewById(R.id.btnFaceMode)
         spinnerDevices = findViewById(R.id.spinnerDevices)
         seekBarSpeed = findViewById(R.id.seekBarSpeed)
         tvStatus = findViewById(R.id.tvStatus)
@@ -117,6 +119,10 @@ class MainActivity : AppCompatActivity() {
         
         btnStop.setOnClickListener {
             robotController.stop()
+        }
+        
+        btnFaceMode.setOnClickListener {
+            openFaceMode()
         }
         
         seekBarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -231,6 +237,12 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Bluetooth permissions required", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+    
+    private fun openFaceMode() {
+        val intent = Intent(this, RobotFaceActivity::class.java)
+        intent.putExtra(RobotFaceActivity.EXTRA_EXPRESSION, "HAPPY")
+        startActivity(intent)
     }
     
     override fun onDestroy() {

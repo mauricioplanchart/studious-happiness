@@ -163,5 +163,17 @@
             android:textColor="#FFFFFF"
             android:backgroundTint="#2196F3"/>
 
+        <!-- Face Mode Button -->
+        <Button
+            android:id="@+id/btnFaceMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:text="🤖 ROBOT FACE MODE"
+            android:textSize="18sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#9C27B0"
+            android:padding="16dp"/>
+
     </LinearLayout>
 </ScrollView>

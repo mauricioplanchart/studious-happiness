@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Robot Control</string>
+    <string name="face_mode">Robot Face Mode</string>
+    <string name="tap_to_change">Tap to change • Long press to exit</string>
+    <string name="expression_happy">😊 Happy</string>
+    <string name="expression_excited">🤩 Excited</string>
+    <string name="expression_surprised">😮 Surprised</string>
+    <string name="expression_angry">😠 Angry</string>
+    <string name="expression_sad">😢 Sad</string>
+    <string name="expression_thinking">🤔 Thinking</string>
+    <string name="expression_sleeping">😴 Sleeping</string>
 </resources>

@@ -92,6 +92,22 @@ Have you bought the parts yet?
 
 ---
 
+## Bonus: Robot Face Mode 🤖
+
+**NEW FEATURE!** Make your robot come alive:
+
+1. Click **"🤖 ROBOT FACE MODE"** button
+2. Mount phone on robot (use stand or tape)
+3. Phone displays animated face with blinking eyes
+4. Tap screen to change expressions
+5. Long press to return to controls
+
+**Quick mounting:** Buy $5 phone stand, secure to robot with tape. Done!
+
+📖 Full guide: [PHONE_FACE_GUIDE.md](PHONE_FACE_GUIDE.md)
+
+---
+
 ## Troubleshooting Common Issues
 
 ### "Can't connect to Bluetooth"
