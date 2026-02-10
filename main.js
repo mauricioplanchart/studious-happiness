@@ -160,6 +160,46 @@ function createAvatar(x, z, color) {
     return avatar;
 }
 
+function sanitizeName(name) {
+    if (!name) return '';
+    return name.toString().trim().slice(0, 16);
+}
+
+function createNameLabel(name) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = 'Bold 20px Arial';
+    context.fillStyle = 'white';
+    context.textAlign = 'center';
+    context.fillText(name, canvas.width / 2, canvas.height / 2 + 7);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.position.y = 7;
+    sprite.scale.set(4, 1, 1);
+
+    return { sprite, texture };
+}
+
+function setAvatarName(avatar, name) {
+    const safeName = sanitizeName(name) || 'Player';
+    avatar.userData.displayName = safeName;
+
+    if (avatar.userData.nameLabel) {
+        avatar.remove(avatar.userData.nameLabel.sprite);
+        avatar.userData.nameLabel.texture.dispose();
+    }
+
+    const label = createNameLabel(safeName);
+    avatar.add(label.sprite);
+    avatar.userData.nameLabel = label;
+}
+
 // Create NPC avatars with random colors
 const avatars = [];
 const avatarColors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22, 0x34495e];
@@ -181,6 +221,10 @@ for (let i = 0; i < 8; i++) {
 // Create local player avatar
 const localPlayer = createAvatar(0, 30, 0x00ff00); // Green color for local player
 localPlayer.position.y = 0;
+setAvatarName(localPlayer, 'Player');
+let desiredPlayerName = '';
+let localPlayerName = 'Player';
+let nameSent = false;
 
 // Third-person camera controls
 let mouseDown = false;
@@ -231,10 +275,12 @@ function selectPlayer(playerId) {
     const selectedPlayerIndicator = document.getElementById('selectedPlayerIndicator');
     const chatHeader = document.getElementById('chatHeader');
 
+    const displayName = getPlayerDisplayName(playerId);
+
     if (selectedPlayer) {
-        selectedPlayerIndicator.textContent = 'Private chat with ' + playerId.substr(0, 6) + ' (Click to deselect)';
+        selectedPlayerIndicator.textContent = 'Private chat with ' + displayName + ' (Click to deselect)';
         selectedPlayerIndicator.style.display = 'block';
-        chatHeader.textContent = 'Private Chat with ' + playerId.substr(0, 6);
+        chatHeader.textContent = 'Private Chat with ' + displayName;
         chatHeader.className = 'private';
 
         selectedPlayerIndicator.onclick = () => {
@@ -251,6 +297,17 @@ function deselectPlayer() {
     selectedPlayerIndicator.style.display = 'none';
     chatHeader.textContent = 'Global Chat (Click player to private chat)';
     chatHeader.className = '';
+}
+
+function getPlayerDisplayName(playerId) {
+    if (playerId === localPlayerId) {
+        return localPlayerName || 'Player';
+    }
+    const avatar = otherPlayers.get(playerId);
+    if (avatar && avatar.userData.displayName) {
+        return avatar.userData.displayName;
+    }
+    return playerId.substr(0, 6);
 }
 
 document.addEventListener('mousedown', (e) => {
@@ -274,11 +331,14 @@ document.addEventListener('mousemove', (e) => {
 let gameStarted = false;
 const instructions = document.getElementById('instructions');
 instructions.addEventListener('click', () => {
+    const nameInput = document.getElementById('playerNameInput');
+    desiredPlayerName = nameInput ? sanitizeName(nameInput.value) : '';
     instructions.style.display = 'none';
     gameStarted = true;
     chatContainer.style.display = 'flex';
     connectionStatus.style.display = 'block';
     updateConnectionStatus();
+    applyLocalName();
 });
 
 // Movement
@@ -361,6 +421,96 @@ const gravity = -0.5;
 const otherPlayers = new Map();
 let localPlayerId = null;
 let ws = null;
+const speechBubbleTimeouts = new Map();
+let hasInit = false;
+
+function createSpeechBubble(text) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const padding = 12;
+    const fontSize = 20;
+
+    context.font = `Bold ${fontSize}px Arial`;
+    const textMetrics = context.measureText(text);
+    const textWidth = Math.max(60, Math.ceil(textMetrics.width));
+
+    canvas.width = textWidth + padding * 2;
+    canvas.height = fontSize + padding * 2;
+
+    context.font = `Bold ${fontSize}px Arial`;
+    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    context.lineWidth = 2;
+
+    const radius = 10;
+    context.beginPath();
+    context.moveTo(radius, 0);
+    context.lineTo(canvas.width - radius, 0);
+    context.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+    context.lineTo(canvas.width, canvas.height - radius);
+    context.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+    context.lineTo(radius, canvas.height);
+    context.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    context.lineTo(0, radius);
+    context.quadraticCurveTo(0, 0, radius, 0);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = 'white';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    const scale = 0.03;
+    sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+    sprite.position.y = 8.5;
+
+    return { sprite, texture };
+}
+
+function showSpeechBubble(playerId, message) {
+    if (!message) return;
+
+    const avatar = playerId === localPlayerId ? localPlayer : otherPlayers.get(playerId);
+    if (!avatar) return;
+
+    const text = message.length > 60 ? `${message.slice(0, 57)}...` : message;
+
+    if (avatar.userData.speechBubble) {
+        const { sprite, texture } = avatar.userData.speechBubble;
+        if (texture) {
+            texture.dispose();
+        }
+        const updated = createSpeechBubble(text);
+        sprite.material.map = updated.texture;
+        sprite.material.needsUpdate = true;
+        sprite.scale.copy(updated.sprite.scale);
+        avatar.userData.speechBubble.texture = updated.texture;
+    } else {
+        const bubble = createSpeechBubble(text);
+        avatar.add(bubble.sprite);
+        avatar.userData.speechBubble = bubble;
+    }
+
+    if (speechBubbleTimeouts.has(playerId)) {
+        clearTimeout(speechBubbleTimeouts.get(playerId));
+    }
+
+    const timeoutId = setTimeout(() => {
+        if (avatar.userData.speechBubble) {
+            avatar.remove(avatar.userData.speechBubble.sprite);
+            avatar.userData.speechBubble.texture.dispose();
+            avatar.userData.speechBubble = null;
+        }
+        speechBubbleTimeouts.delete(playerId);
+    }, 4000);
+
+    speechBubbleTimeouts.set(playerId, timeoutId);
+}
 
 // Create avatar for other players
 function createPlayerAvatar(playerId, color) {
@@ -411,27 +561,25 @@ function createPlayerAvatar(playerId, color) {
     rightLeg.castShadow = true;
     avatar.add(rightLeg);
 
-    // Add username label
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 64;
-    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.font = 'Bold 20px Arial';
-    context.fillStyle = 'white';
-    context.textAlign = 'center';
-    context.fillText(playerId.substr(0, 6), canvas.width / 2, canvas.height / 2 + 7);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.position.y = 7;
-    sprite.scale.set(4, 1, 1);
-    avatar.add(sprite);
+    setAvatarName(avatar, playerId.substr(0, 6));
 
     scene.add(avatar);
     return avatar;
+}
+
+function applyLocalName() {
+    if (!hasInit || !ws || ws.readyState !== WebSocket.OPEN || nameSent) {
+        return;
+    }
+    const fallbackName = localPlayerId ? `Player ${localPlayerId.substr(0, 6)}` : 'Player';
+    const selectedName = sanitizeName(desiredPlayerName) || fallbackName;
+    localPlayerName = selectedName;
+    setAvatarName(localPlayer, localPlayerName);
+    ws.send(JSON.stringify({
+        type: 'setName',
+        name: localPlayerName
+    }));
+    nameSent = true;
 }
 
 // Connect to WebSocket server
@@ -452,6 +600,8 @@ function connectMultiplayer() {
                 case 'init':
                     localPlayerId = message.playerId;
                     console.log('My player ID:', localPlayerId);
+                    hasInit = true;
+                    applyLocalName();
                     break;
 
                 case 'players':
@@ -459,6 +609,7 @@ function connectMultiplayer() {
                     message.players.forEach(player => {
                         if (!otherPlayers.has(player.id)) {
                             const avatar = createPlayerAvatar(player.id, player.color);
+                            setAvatarName(avatar, player.name || player.id.substr(0, 6));
                             avatar.position.set(player.position.x, player.position.y, player.position.z);
                             avatar.rotation.y = player.rotation;
                             otherPlayers.set(player.id, avatar);
@@ -469,12 +620,20 @@ function connectMultiplayer() {
                 case 'playerJoined':
                     if (!otherPlayers.has(message.player.id)) {
                         const avatar = createPlayerAvatar(message.player.id, message.player.color);
+                        setAvatarName(avatar, message.player.name || message.player.id.substr(0, 6));
                         avatar.position.set(
                             message.player.position.x,
                             message.player.position.y,
                             message.player.position.z
                         );
                         otherPlayers.set(message.player.id, avatar);
+                    }
+                    break;
+
+                case 'playerUpdated':
+                    const updatedPlayer = otherPlayers.get(message.playerId);
+                    if (updatedPlayer) {
+                        setAvatarName(updatedPlayer, message.name || message.playerId.substr(0, 6));
                     }
                     break;
 
@@ -495,6 +654,9 @@ function connectMultiplayer() {
                     if (leftPlayer) {
                         scene.remove(leftPlayer);
                         otherPlayers.delete(message.playerId);
+                        if (selectedPlayer === message.playerId) {
+                            deselectPlayer();
+                        }
                     }
                     break;
 
@@ -585,6 +747,10 @@ function addChatMessage(message) {
         `;
     }
 
+    if (message.playerId && message.playerId !== 'system') {
+        showSpeechBubble(message.playerId, message.message);
+    }
+
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -615,6 +781,9 @@ function sendChatMessage() {
         }
 
         ws.send(JSON.stringify(chatData));
+        if (localPlayerId) {
+            showSpeechBubble(localPlayerId, message);
+        }
         chatInput.value = '';
     }
 }

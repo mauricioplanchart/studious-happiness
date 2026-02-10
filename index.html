@@ -69,6 +69,27 @@
             animation: pulse 2s infinite;
         }
 
+        #playerNameInput {
+            margin-top: 20px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            min-width: 240px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+        }
+
+        #playerNameInput:focus {
+            outline: 2px solid #667eea;
+        }
+
+        .name-hint {
+            margin-top: 8px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
         @keyframes pulse {
 
             0%,
@@ -261,6 +282,8 @@
             <p><strong>Space</strong> - Jump</p>
             <p><strong>T</strong> - Open chat</p>
         </div>
+        <input type="text" id="playerNameInput" placeholder="Choose your name" maxlength="16">
+        <div class="name-hint">Name shown above your avatar</div>
         <div class="start-btn">Click to Enter</div>
     </div>
     <script type="module" src="/main.js"></script>

@@ -16,6 +16,7 @@ wss.on('connection', (ws) => {
 
     players.set(playerId, {
         id: playerId,
+        name: null,
         color: playerColor,
         position: { x: 0, y: 10, z: 30 },
         rotation: 0
@@ -68,13 +69,27 @@ wss.on('connection', (ws) => {
                     }
                     break;
 
+                case 'setName':
+                    if (players.has(playerId)) {
+                        const cleanName = (message.name || '').toString().trim().slice(0, 16);
+                        players.get(playerId).name = cleanName || null;
+                        broadcast({
+                            type: 'playerUpdated',
+                            playerId: playerId,
+                            name: players.get(playerId).name
+                        });
+                    }
+                    break;
+
                 case 'chat':
+                    const playerName = players.get(playerId)?.name;
+                    const displayName = playerName && playerName.length > 0 ? playerName : playerId.substr(0, 6);
                     if (message.private && message.toPlayerId) {
                         const privateMsg = {
                             type: 'chat',
                             id: messageId++,
                             playerId: playerId,
-                            username: message.username || playerId.substr(0, 6),
+                            username: displayName,
                             message: message.message,
                             timestamp: Date.now(),
                             private: true
@@ -92,7 +107,7 @@ wss.on('connection', (ws) => {
                             type: 'chat',
                             id: messageId++,
                             playerId: playerId,
-                            username: message.username || playerId.substr(0, 6),
+                            username: displayName,
                             message: message.message,
                             timestamp: Date.now(),
                             private: false
