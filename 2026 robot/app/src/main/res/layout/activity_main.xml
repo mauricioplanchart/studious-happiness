@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#1E1E1E">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Robot Control"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Connection Status -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Disconnected"
+            android:textSize="18sp"
+            android:textColor="#FF5252"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Device Selection -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Bluetooth Device:"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="8dp"/>
+
+        <Spinner
+            android:id="@+id/spinnerDevices"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="#2E2E2E"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Connection Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="30dp">
+
+            <Button
+                android:id="@+id/btnConnect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Connect"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#4CAF50"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnDisconnect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Disconnect"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#F44336"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <!-- Speed Control -->
+        <TextView
+            android:id="@+id/tvSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Speed: 5"
+            android:textSize="18sp"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="8dp"/>
+
+        <SeekBar
+            android:id="@+id/seekBarSpeed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="9"
+            android:progress="5"
+            android:layout_marginBottom="30dp"/>
+
+        <!-- Control Pad -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Direction Control"
+            android:textSize="18sp"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Forward Button -->
+        <Button
+            android:id="@+id/btnForward"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:text="▲\nFORWARD"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2196F3"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Left, Stop, Right Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnLeft"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:text="◄\nLEFT"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#2196F3"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnStop"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:text="■\nSTOP"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#FF9800"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnRight"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:text="►\nRIGHT"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#2196F3"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <!-- Backward Button -->
+        <Button
+            android:id="@+id/btnBackward"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:text="▼\nBACKWARD"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2196F3"/>
+
+    </LinearLayout>
+</ScrollView>

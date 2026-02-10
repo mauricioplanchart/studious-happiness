@@ -1,0 +1,24 @@
+<resources>
+    <!-- App Colors -->
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorAccent">#FF9800</color>
+    
+    <!-- Background Colors -->
+    <color name="background">#1E1E1E</color>
+    <color name="backgroundLight">#2E2E2E</color>
+    
+    <!-- Text Colors -->
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#B0B0B0</color>
+    
+    <!-- Button Colors -->
+    <color name="buttonGreen">#4CAF50</color>
+    <color name="buttonRed">#F44336</color>
+    <color name="buttonBlue">#2196F3</color>
+    <color name="buttonOrange">#FF9800</color>
+    
+    <!-- Status Colors -->
+    <color name="statusConnected">#4CAF50</color>
+    <color name="statusDisconnected">#FF5252</color>
+</resources>

@@ -1,0 +1,12 @@
+# Render.com deployment configuration
+# This file tells Render how to deploy your WebSocket server
+
+services:
+  - type: web
+    name: metaverse-websocket-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
