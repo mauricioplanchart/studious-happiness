@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 
 // ============================================
 // GLOBAL VARIABLE DECLARATIONS (ALL AT TOP)
@@ -20,7 +19,6 @@ let nameSent = false;
 let ws = null;
 let hasInit = false;
 let clickableMonitors = [];
-let clickableProducts = [];
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -30,24 +28,11 @@ scene.fog = new THREE.Fog(0x87CEEB, 0, 750);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 15, 20);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.domElement.style.position = 'absolute';
-renderer.domElement.style.top = '0';
-renderer.domElement.style.pointerEvents = 'none';
 document.body.appendChild(renderer.domElement);
-
-// CSS3D Renderer for real website iframes
-const cssRenderer = new CSS3DRenderer();
-cssRenderer.setSize(window.innerWidth, window.innerHeight);
-cssRenderer.domElement.style.position = 'absolute';
-cssRenderer.domElement.style.top = '0';
-document.body.appendChild(cssRenderer.domElement);
-
-// Store CSS3D objects for monitors
-const monitorIframes = new Map();
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -82,7 +67,6 @@ class BrowserUI {
         this.width = width;
         this.height = height;
         this.currentURL = "https://google.com";
-        this.currentSite = "google";
         this.canvas = document.createElement('canvas');
         this.canvas.width = width;
         this.canvas.height = height;
@@ -90,32 +74,6 @@ class BrowserUI {
         this.texture = new THREE.CanvasTexture(this.canvas);
         this.texture.magFilter = THREE.LinearFilter;
         this.texture.minFilter = THREE.LinearFilter;
-    }
-
-    loadURL(url) {
-        this.currentURL = url;
-
-        // Detect website type from URL
-        const urlLower = url.toLowerCase();
-        if (urlLower.includes('google')) {
-            this.currentSite = 'google';
-        } else if (urlLower.includes('youtube')) {
-            this.currentSite = 'youtube';
-        } else if (urlLower.includes('wikipedia')) {
-            this.currentSite = 'wikipedia';
-        } else if (urlLower.includes('github')) {
-            this.currentSite = 'github';
-        } else if (urlLower.includes('twitter') || urlLower.includes('x.com')) {
-            this.currentSite = 'twitter';
-        } else if (urlLower.includes('reddit')) {
-            this.currentSite = 'reddit';
-        } else if (urlLower.includes('amazon')) {
-            this.currentSite = 'amazon';
-        } else {
-            this.currentSite = 'generic';
-        }
-
-        this.draw();
     }
 
     draw() {
@@ -147,7 +105,6 @@ class BrowserUI {
 
         ctx.fillStyle = '#666666';
         ctx.font = '14px Arial';
-        ctx.textAlign = 'left';
         ctx.fillText(this.currentURL, 65, 37);
 
         // Reload button
@@ -157,304 +114,63 @@ class BrowserUI {
         ctx.font = 'bold 20px Arial';
         ctx.fillText('⟳', w - 42, 36);
 
+        // Tab bar
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 60, w, 30);
+        ctx.fillStyle = '#4a90e2';
+        ctx.fillRect(10, 60, 100, 30);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('Google Search', 20, 80);
+
         // Content area
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 60, w, h - 60);
+        ctx.fillRect(0, 90, w, h - 90);
 
-        // Draw site-specific content
-        this.drawSiteContent();
+        // Draw sample content (Google-like search interface)
+        ctx.fillStyle = '#4a90e2';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('G', w / 2 - 100, 200);
+        ctx.fillStyle = '#ea4335';
+        ctx.fillText('o', w / 2 - 40, 200);
+        ctx.fillStyle = '#fbbc04';
+        ctx.fillText('o', w / 2 + 20, 200);
+        ctx.fillStyle = '#4a90e2';
+        ctx.fillText('g', w / 2 + 80, 200);
+        ctx.fillStyle = '#ea4335';
+        ctx.fillText('l', w / 2 + 130, 200);
+        ctx.fillStyle = '#30a853';
+        ctx.fillText('e', w / 2 + 170, 200);
+
+        // Search box
+        ctx.fillStyle = '#f1f3f4';
+        ctx.strokeStyle = '#dadce0';
+        ctx.lineWidth = 2;
+        ctx.fillRect(w / 2 - 200, 270, 400, 50);
+        ctx.strokeRect(w / 2 - 200, 270, 400, 50);
+
+        ctx.fillStyle = '#999999';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Search or type URL...', w / 2, 302);
+
+        // Search button
+        ctx.fillStyle = '#4a90e2';
+        ctx.fillRect(w / 2 - 100, 350, 200, 40);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('Google Search', w / 2, 376);
 
         this.texture.needsUpdate = true;
     }
-
-    drawSiteContent() {
-        const ctx = this.ctx;
-        const w = this.width;
-        const h = this.height;
-        ctx.textAlign = 'center';
-
-        switch (this.currentSite) {
-            case 'google':
-                // Google logo
-                ctx.fillStyle = '#4a90e2';
-                ctx.font = 'bold 72px Arial';
-                ctx.fillText('G', w / 2 - 150, 200);
-                ctx.fillStyle = '#ea4335';
-                ctx.fillText('o', w / 2 - 60, 200);
-                ctx.fillStyle = '#fbbc04';
-                ctx.fillText('o', w / 2 + 30, 200);
-                ctx.fillStyle = '#4a90e2';
-                ctx.fillText('g', w / 2 + 120, 200);
-                ctx.fillStyle = '#ea4335';
-                ctx.fillText('l', w / 2 + 195, 200);
-                ctx.fillStyle = '#34a853';
-                ctx.fillText('e', w / 2 + 255, 200);
-
-                // Search box
-                ctx.fillStyle = '#f1f3f4';
-                ctx.strokeStyle = '#dadce0';
-                ctx.lineWidth = 2;
-                ctx.fillRect(w / 2 - 250, 300, 500, 50);
-                ctx.strokeRect(w / 2 - 250, 300, 500, 50);
-                ctx.fillStyle = '#999999';
-                ctx.font = '18px Arial';
-                ctx.fillText('Search Google...', w / 2, 332);
-                break;
-
-            case 'youtube':
-                // YouTube style
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(w / 2 - 100, 100, 200, 140);
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.moveTo(w / 2 - 30, 140);
-                ctx.lineTo(w / 2 + 40, 170);
-                ctx.lineTo(w / 2 - 30, 200);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.fillStyle = '#000000';
-                ctx.font = 'bold 48px Arial';
-                ctx.fillText('YouTube', w / 2, 310);
-
-                // Video thumbnails simulation
-                for (let i = 0; i < 6; i++) {
-                    const x = (i % 3) * 320 + 50;
-                    const y = Math.floor(i / 3) * 200 + 380;
-                    ctx.fillStyle = '#e0e0e0';
-                    ctx.fillRect(x, y, 280, 160);
-                    ctx.fillStyle = '#666666';
-                    ctx.font = '14px Arial';
-                    ctx.textAlign = 'left';
-                    ctx.fillText('Video Title', x + 10, y + 185);
-                }
-                break;
-
-            case 'wikipedia':
-                // Wikipedia logo style
-                ctx.fillStyle = '#000000';
-                ctx.font = 'bold 64px serif';
-                ctx.fillText('W', w / 2, 180);
-
-                ctx.font = 'bold 48px serif';
-                ctx.fillText('WIKIPEDIA', w / 2, 250);
-
-                ctx.font = '20px serif';
-                ctx.fillStyle = '#666666';
-                ctx.fillText('The Free Encyclopedia', w / 2, 290);
-
-                // Search box
-                ctx.fillStyle = '#ffffff';
-                ctx.strokeStyle = '#a2a9b1';
-                ctx.lineWidth = 2;
-                ctx.fillRect(w / 2 - 250, 350, 500, 50);
-                ctx.strokeRect(w / 2 - 250, 350, 500, 50);
-
-                // Article simulation
-                ctx.textAlign = 'left';
-                ctx.fillStyle = '#000000';
-                ctx.font = '16px serif';
-                const lines = ['Featured Article', '', 'Lorem ipsum dolor sit amet, consectetur', 'adipiscing elit. Sed do eiusmod tempor', 'incididunt ut labore et dolore magna.'];
-                lines.forEach((line, i) => {
-                    ctx.fillText(line, 100, 450 + i * 30);
-                });
-                break;
-
-            case 'github':
-                // GitHub style
-                ctx.fillStyle = '#24292e';
-                ctx.fillRect(0, 60, w, 60);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 32px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText('GitHub', 40, 100);
-
-                // Repository simulation
-                ctx.fillStyle = '#0366d6';
-                ctx.font = 'bold 28px Arial';
-                ctx.fillText('user/repository', 100, 200);
-
-                ctx.fillStyle = '#586069';
-                ctx.font = '18px Arial';
-                ctx.fillText('Public repository', 100, 240);
-
-                // Code area
-                ctx.fillStyle = '#f6f8fa';
-                ctx.fillRect(80, 280, w - 160, 300);
-                ctx.fillStyle = '#24292e';
-                ctx.font = '16px monospace';
-                const codeLines = ['README.md', 'src/', 'package.json', 'index.html', 'main.js'];
-                codeLines.forEach((line, i) => {
-                    ctx.fillText(line, 100, 320 + i * 40);
-                });
-                break;
-
-            case 'twitter':
-                // Twitter/X style
-                ctx.fillStyle = '#1da1f2';
-                ctx.fillRect(0, 60, w, 60);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 42px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('X', w / 2, 105);
-
-                // Tweet simulation
-                for (let i = 0; i < 4; i++) {
-                    const y = 180 + i * 140;
-                    ctx.fillStyle = '#f7f9fa';
-                    ctx.fillRect(100, y, w - 200, 120);
-                    ctx.fillStyle = '#14171a';
-                    ctx.font = 'bold 18px Arial';
-                    ctx.textAlign = 'left';
-                    ctx.fillText('@username', 120, y + 30);
-                    ctx.font = '16px Arial';
-                    ctx.fillStyle = '#657786';
-                    ctx.fillText('Tweet content goes here...', 120, y + 60);
-                    ctx.fillText('This is a sample tweet', 120, y + 85);
-                }
-                break;
-
-            case 'reddit':
-                // Reddit style
-                ctx.fillStyle = '#ff4500';
-                ctx.fillRect(0, 60, w, 60);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 36px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText('reddit', 40, 105);
-
-                // Posts simulation
-                for (let i = 0; i < 5; i++) {
-                    const y = 180 + i * 110;
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(50, y, w - 100, 100);
-                    ctx.strokeStyle = '#ccc';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(50, y, w - 100, 100);
-
-                    ctx.fillStyle = '#1c1c1c';
-                    ctx.font = 'bold 18px Arial';
-                    ctx.fillText('Post title ' + (i + 1), 70, y + 30);
-                    ctx.font = '14px Arial';
-                    ctx.fillStyle = '#787c7e';
-                    ctx.fillText('r/subreddit • Posted by u/user', 70, y + 55);
-                }
-                break;
-
-            case 'amazon':
-                // Amazon style
-                ctx.fillStyle = '#232f3e';
-                ctx.fillRect(0, 60, w, 60);
-                ctx.fillStyle = '#ff9900';
-                ctx.font = 'bold 36px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText('amazon', 40, 105);
-
-                // Product grid simulation
-                for (let i = 0; i < 6; i++) {
-                    const x = (i % 3) * 320 + 50;
-                    const y = Math.floor(i / 3) * 280 + 180;
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(x, y, 280, 250);
-                    ctx.strokeStyle = '#ddd';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(x, y, 280, 250);
-
-                    ctx.fillStyle = '#e0e0e0';
-                    ctx.fillRect(x + 20, y + 20, 240, 160);
-                    ctx.fillStyle = '#000000';
-                    ctx.font = '14px Arial';
-                    ctx.textAlign = 'left';
-                    ctx.fillText('Product Name', x + 20, y + 200);
-                    ctx.fillStyle = '#b12704';
-                    ctx.font = 'bold 18px Arial';
-                    ctx.fillText('$99.99', x + 20, y + 230);
-                }
-                break;
-
-            default:
-                // Generic website
-                ctx.fillStyle = '#333333';
-                ctx.font = 'bold 48px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Website Loaded', w / 2, 250);
-                ctx.font = '24px Arial';
-                ctx.fillStyle = '#666666';
-                ctx.fillText(this.currentURL, w / 2, 320);
-                ctx.font = '18px Arial';
-                ctx.fillText('Click another monitor or enter new URL', w / 2, 400);
-                break;
-        }
-    }
 }
 
-// Create separate browser UI for each monitor
-const monitorBrowsers = new Map();
-
-// CSS3D Scene for iframes
-const cssScene = new THREE.Scene();
-
-// Product data
-const productData = [
-    {
-        name: 'Laptop Gaming',
-        price: '$999',
-        description: 'Laptop potente para gamers con RTX 4060',
-        image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Laptop%20Gaming'
-    },
-    {
-        name: 'Audífonos Bluetooth',
-        price: '$149',
-        description: 'Audífonos inalámbricos con cancelación de ruido',
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Audífonos'
-    },
-    {
-        name: 'Smartwatch Pro',
-        price: '$299',
-        description: 'Reloj inteligente con monitor de salud',
-        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Smartwatch'
-    },
-    {
-        name: 'Cámara 4K',
-        price: '$599',
-        description: 'Cámara profesional para contenido',
-        image: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Cámara%204K'
-    },
-    {
-        name: 'Tablet Pro',
-        price: '$449',
-        description: 'Tablet de alta gama para diseño',
-        image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Tablet%20Pro'
-    },
-    {
-        name: 'Teclado Mecánico',
-        price: '$179',
-        description: 'Teclado RGB para gaming',
-        image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Teclado'
-    },
-    {
-        name: 'Mouse Gamer',
-        price: '$89',
-        description: 'Mouse de alta precisión',
-        image: 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Mouse%20Gamer'
-    },
-    {
-        name: 'Consola Next-Gen',
-        price: '$499',
-        description: 'Consola de última generación',
-        image: 'https://images.unsplash.com/photo-1486401899868-0e435ed85128?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Consola'
-    }
-];
+const browserUI = new BrowserUI(1024, 768);
+browserUI.draw();
 
 // Browser URL tracking
+let currentBrowserURL = "";
 let selectedMonitor = null;
 
 // Create browser URL input UI (HTML overlay)
@@ -463,24 +179,17 @@ const browserInputHTML = `
         background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
         z-index: 9999; min-width: 400px; font-family: Arial, sans-serif;">
         <h3 style="margin-top: 0; color: #333;">Enter Website URL</h3>
-        <input type="text" id="browserURLInput" placeholder="e.g., google.com, youtube.com, wikipedia.org" 
+        <input type="text" id="browserURLInput" placeholder="e.g., nytimes.com, google.com, wikipedia.org" 
             style="width: 100%; padding: 10px; border: 2px solid #4a90e2; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
         <div style="margin-top: 15px; display: flex; gap: 10px;">
-            <button id="browserLoadBtn" style="flex: 1; padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Load on Monitor</button>
+            <button id="browserLoadBtn" style="flex: 1; padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Load</button>
             <button id="browserCancelBtn" style="flex: 1; padding: 10px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
         </div>
-        <p style="font-size: 12px; color: #999; margin-top: 10px;">Try: google, youtube, wikipedia, github, twitter, reddit, amazon</p>
+        <p style="font-size: 12px; color: #999; margin-top: 10px;">Note: Some websites may not load due to security restrictions</p>
     </div>
-    
-    <div id="productModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; ">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); max-width: 500px; width: 90%;">
-            <button id="closeProductModal" style="position: absolute; top: 15px; right: 15px; background: #ff4444; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 20px; font-weight: bold;">×</button>
-            <img id="productImage" src="" style="width: 100%; height: 250px; object-fit: cover; border-radius: 10px; margin-bottom: 20px;">
-            <h2 id="productName" style="margin: 0 0 10px 0; color: #333; font-size: 28px;"></h2>
-            <p id="productPrice" style="font-size: 32px; color: #FF6B35; font-weight: bold; margin: 10px 0;"></p>
-            <p id="productDescription" style="color: #666; font-size: 16px; line-height: 1.6; margin: 15px 0;"></p>
-            <button id="buyProductBtn" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #25D366, #128C7E); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: transform 0.2s;">💬 Comprar por WhatsApp</button>
-        </div>
+    <div id="browserIframeContainer" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); z-index: 9998;">
+        <iframe id="browserIframe" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
     </div>
 `;
 document.body.insertAdjacentHTML('beforeend', browserInputHTML);
@@ -504,119 +213,50 @@ document.getElementById('browserURLInput').addEventListener('keypress', (e) => {
     }
 });
 
-function openBrowserInput(monitor) {
-    selectedMonitor = monitor;
+function openBrowserInput() {
     document.getElementById('browserInputOverlay').style.display = 'block';
     document.getElementById('browserURLInput').focus();
-
-    // Show current URL if monitor has one
-    const iframe = monitorIframes.get(monitor);
-    if (iframe && iframe.element) {
-        try {
-            const currentUrl = iframe.element.src.replace('https://', '').replace('http://', '');
-            document.getElementById('browserURLInput').value = currentUrl;
-        } catch (e) {
-            document.getElementById('browserURLInput').value = '';
-        }
-    } else {
-        document.getElementById('browserURLInput').value = '';
-    }
+    document.getElementById('browserURLInput').value = '';
 }
 
 function closeBrowserInput() {
     document.getElementById('browserInputOverlay').style.display = 'none';
-    selectedMonitor = null;
 }
 
 function loadBrowserURL(url) {
-    if (!selectedMonitor) return;
-
     // Add protocol if missing
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'https://' + url;
     }
 
-    // Create or update iframe for this monitor
-    let css3DObject = monitorIframes.get(selectedMonitor);
-
-    if (!css3DObject) {
-        // Create new iframe
-        const iframe = document.createElement('iframe');
-        iframe.style.width = '1920px';
-        iframe.style.height = '1440px';
-        iframe.style.border = 'none';
-        iframe.style.background = '#ffffff';
-        iframe.src = url;
-
-        // Create CSS3D object
-        css3DObject = new CSS3DObject(iframe);
-
-        // Position it at the monitor location
-        const monitorWorldPos = new THREE.Vector3();
-        selectedMonitor.getWorldPosition(monitorWorldPos);
-
-        const monitorWorldQuat = new THREE.Quaternion();
-        selectedMonitor.getWorldQuaternion(monitorWorldQuat);
-
-        css3DObject.position.copy(monitorWorldPos);
-        css3DObject.quaternion.copy(monitorWorldQuat);
-
-        // Scale to match monitor size
-        const scale = 0.004; // Adjust this to fit monitor
-        css3DObject.scale.set(scale, scale, scale);
-
-        cssScene.add(css3DObject);
-        monitorIframes.set(selectedMonitor, css3DObject);
-
-        // Store reference to iframe element
-        css3DObject.element = iframe;
-    } else {
-        // Update existing iframe
-        css3DObject.element.src = url;
-    }
-
+    // Close input overlay and show iframe
     closeBrowserInput();
+
+    const iframeContainer = document.getElementById('browserIframeContainer');
+    const iframe = document.getElementById('browserIframe');
+
+    // Note: This will only work for CORS-enabled websites
+    // For security, we'll use an approach that works for more sites
+    iframe.src = url;
+    iframeContainer.style.display = 'block';
+
+    currentBrowserURL = url;
 }
 
-// Escape key to close browser input
+// Close browser iframe when clicking outside
+document.getElementById('browserIframeContainer').addEventListener('click', (e) => {
+    if (e.target.id === 'browserIframeContainer') {
+        document.getElementById('browserIframeContainer').style.display = 'none';
+    }
+});
+
+// Escape key to close browser
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeBrowserInput();
-        closeProductModal();
+        document.getElementById('browserIframeContainer').style.display = 'none';
     }
 });
-
-// Product modal event listeners
-document.getElementById('closeProductModal').addEventListener('click', closeProductModal);
-document.getElementById('productModal').addEventListener('click', (e) => {
-    if (e.target.id === 'productModal') {
-        closeProductModal();
-    }
-});
-
-let currentProductLink = '';
-document.getElementById('buyProductBtn').addEventListener('click', () => {
-    if (currentProductLink) {
-        window.open(currentProductLink, '_blank');
-    }
-});
-
-function showProductModal(productIndex) {
-    const product = productData[productIndex];
-    if (!product) return;
-
-    document.getElementById('productImage').src = product.image;
-    document.getElementById('productName').textContent = product.name;
-    document.getElementById('productPrice').textContent = product.price;
-    document.getElementById('productDescription').textContent = product.description;
-    currentProductLink = product.buyLink;
-
-    document.getElementById('productModal').style.display = 'block';
-}
-
-function closeProductModal() {
-    document.getElementById('productModal').style.display = 'none';
-}
 
 // Helper functions for avatar names (moved before use)
 function sanitizeName(name) {
@@ -659,108 +299,43 @@ function setAvatarName(avatar, name) {
     avatar.userData.nameLabel = label;
 }
 
-// Create small house for village
-function createHouse(x, z, color) {
-    const house = new THREE.Group();
-
-    // House walls
-    const wallsGeo = new THREE.BoxGeometry(6, 4, 6);
-    const wallsMat = new THREE.MeshStandardMaterial({ color: color || 0xf5deb3 });
-    const walls = new THREE.Mesh(wallsGeo, wallsMat);
-    walls.position.y = 2;
-    walls.castShadow = true;
-    walls.receiveShadow = true;
-    house.add(walls);
-
-    // Roof (pyramid shape)
-    const roofGeo = new THREE.ConeGeometry(5, 3, 4);
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
-    const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.y = 5.5;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    house.add(roof);
-
-    // Door
-    const doorGeo = new THREE.BoxGeometry(1.5, 2.5, 0.2);
-    const doorMat = new THREE.MeshStandardMaterial({ color: 0x654321 });
-    const door = new THREE.Mesh(doorGeo, doorMat);
-    door.position.set(0, 1.25, 3.1);
-    door.castShadow = true;
-    house.add(door);
-
-    // Windows
-    const windowGeo = new THREE.BoxGeometry(1, 1, 0.2);
-    const windowMat = new THREE.MeshStandardMaterial({ color: 0x87ceeb, emissive: 0x87ceeb, emissiveIntensity: 0.3 });
-
-    const window1 = new THREE.Mesh(windowGeo, windowMat);
-    window1.position.set(-1.8, 2.5, 3.1);
-    house.add(window1);
-
-    const window2 = new THREE.Mesh(windowGeo, windowMat);
-    window2.position.set(1.8, 2.5, 3.1);
-    house.add(window2);
-
-    house.position.set(x, 0, z);
-    scene.add(house);
-    return house;
-}
-
-// Create small village - 2 houses
-// Left side of main street
-createHouse(-40, -40, 0xffe4b5);
-
-// Right side of main street
-createHouse(40, -40, 0xffd9b3);
-
-// Create small plaza/fountain in center
-const fountainGeo = new THREE.CylinderGeometry(2, 2.5, 1.5, 8);
-const fountainMat = new THREE.MeshStandardMaterial({ color: 0xd3d3d3 });
-const fountain = new THREE.Mesh(fountainGeo, fountainMat);
-fountain.position.set(0, 0.75, -15);
-fountain.castShadow = true;
-fountain.receiveShadow = true;
-scene.add(fountain);
-
-// Water in fountain
-const waterGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.3, 16);
-const waterMat = new THREE.MeshStandardMaterial({
-    color: 0x4169e1,
-    transparent: true,
-    opacity: 0.7,
-    emissive: 0x4169e1,
-    emissiveIntensity: 0.2
-});
-const water = new THREE.Mesh(waterGeo, waterMat);
-water.position.set(0, 1.6, -15);
-scene.add(water);
-
-// Create roads/paths
-function createRoad(x, z, width, length, rotation = 0) {
-    const roadGeo = new THREE.BoxGeometry(width, 0.1, length);
-    const roadMat = new THREE.MeshStandardMaterial({
-        color: 0x696969,
-        roughness: 0.8
+// Create buildings
+function createBuilding(x, z, width, height, depth, color) {
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    const material = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.7,
+        metalness: 0.3
     });
-    const road = new THREE.Mesh(roadGeo, roadMat);
-    road.position.set(x, 0.05, z);
-    road.rotation.y = rotation;
-    road.receiveShadow = true;
-    scene.add(road);
-    return road;
+    const building = new THREE.Mesh(geometry, material);
+    building.position.set(x, height / 2, z);
+    building.castShadow = true;
+    building.receiveShadow = true;
+    scene.add(building);
+    return building;
 }
 
-// Main central road (vertical) - extended to reach back houses
-createRoad(0, -10, 12, 100);
+// Build a small city
+createBuilding(-30, -30, 15, 25, 15, 0xff6b6b);
+createBuilding(30, -30, 12, 30, 12, 0x4ecdc4);
+createBuilding(-30, 30, 10, 20, 10, 0xffe66d);
+createBuilding(30, 30, 18, 35, 18, 0x95e1d3);
+createBuilding(0, -50, 20, 15, 20, 0xf38181);
+createBuilding(0, 0, 8, 40, 8, 0xaa96da);
+createBuilding(-60, 0, 15, 28, 15, 0xfcbad3);
+createBuilding(60, 0, 12, 22, 12, 0xa8d8ea);
 
-// Plaza around fountain
-createRoad(0, -15, 18, 18);
-
-// Left side road to house
-createRoad(-25, -40, 20, 4, Math.PI / 2);
-
-// Right side road to house
-createRoad(25, -40, 20, 4, Math.PI / 2);
+// Add some decorative cubes (floating platforms)
+for (let i = 0; i < 10; i++) {
+    const size = Math.random() * 3 + 2;
+    const cube = createBuilding(
+        Math.random() * 150 - 75,
+        Math.random() * 150 - 75,
+        size, size, size,
+        Math.random() * 0xffffff
+    );
+    cube.position.y = size / 2;
+}
 
 // Add trees (cylinders + cones)
 function createTree(x, z) {
@@ -779,94 +354,65 @@ function createTree(x, z) {
     scene.add(leaves);
 }
 
-// Plant trees in organized parks
-// Left park
-for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 3; j++) {
-        createTree(-70 + i * 8, -35 + j * 15);
+// Plant some trees
+for (let i = 0; i < 20; i++) {
+    const x = Math.random() * 200 - 100;
+    const z = Math.random() * 200 - 100;
+    // Avoid placing trees too close to center
+    if (Math.abs(x) > 20 || Math.abs(z) > 20) {
+        createTree(x, z);
     }
 }
-
-// Right park
-for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 3; j++) {
-        createTree(70 + i * 8, -35 + j * 15);
-    }
-}
-
-// Back tree line (forest effect)
-for (let i = 0; i < 15; i++) {
-    createTree(-70 + i * 10, -85);
-}
-
-// Decorative trees near center (scattered but controlled)
-const centerTreePositions = [
-    [-35, 20], [-38, 25], [-32, 22],
-    [35, 20], [38, 25], [32, 22],
-    [-20, -25], [20, -25]
-];
-
-centerTreePositions.forEach(pos => {
-    createTree(pos[0], pos[1]);
-});
 
 // Create Computer function
 function createComputer(x, z) {
     const computer = new THREE.Group();
 
-    // Large Visible Desk - Simple brown rectangle (1.5x bigger)
-    const deskGeometry = new THREE.BoxGeometry(18, 2.25, 9);
+    // Large Visible Desk - Simple brown rectangle
+    const deskGeometry = new THREE.BoxGeometry(12, 1.5, 6);
     const deskMaterial = new THREE.MeshStandardMaterial({ color: 0xCD853F, metalness: 0.3, roughness: 0.7 });
     const desk = new THREE.Mesh(deskGeometry, deskMaterial);
-    desk.position.y = 1.125;
+    desk.position.y = 0.75;
     desk.castShadow = true;
     desk.receiveShadow = true;
     computer.add(desk);
 
-    // Large Monitor (1.5x bigger)
-    const monitorGeometry = new THREE.BoxGeometry(8.25, 6, 0.75);
+    // Large Monitor
+    const monitorGeometry = new THREE.BoxGeometry(5.5, 4, 0.5);
     const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
     const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
-    monitor.position.set(0, 5.25, 0);
+    monitor.position.set(0, 3.5, 0);
     monitor.castShadow = true;
     monitor.receiveShadow = true;
     computer.add(monitor);
 
-    // Bright Screen (very visible) (1.5x bigger)
-    const screenGeometry = new THREE.BoxGeometry(7.5, 5.7, 0.6);
-
-    // Create initial browser UI for this monitor
-    const initialBrowserUI = new BrowserUI(1024, 768);
-    initialBrowserUI.draw();
-
+    // Bright Screen (very visible)
+    const screenGeometry = new THREE.BoxGeometry(5, 3.8, 0.4);
     const screenMaterial = new THREE.MeshStandardMaterial({
-        map: initialBrowserUI.texture,
+        map: browserUI.texture,
         emissive: 0x333333,
         emissiveIntensity: 0.2
     });
     const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-    screen.position.set(0, 5.25, 0.45);
+    screen.position.set(0, 3.5, 0.3);
     screen.castShadow = true;
     screen.userData = { isMonitor: true };
     clickableMonitors.push(screen);
     computer.add(screen);
 
-    // Store the browser UI for this monitor
-    monitorBrowsers.set(screen, initialBrowserUI);
-
-    // Keyboard (1.5x bigger)
-    const keyboardGeometry = new THREE.BoxGeometry(7.5, 0.6, 3);
+    // Keyboard
+    const keyboardGeometry = new THREE.BoxGeometry(5, 0.4, 2);
     const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
     const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
-    keyboard.position.set(0, 2.25, 2.25);
+    keyboard.position.set(0, 1.5, 1.5);
     keyboard.castShadow = true;
     computer.add(keyboard);
 
-    // Mouse (1.5x bigger)
-    const mouseGeometry = new THREE.BoxGeometry(1.05, 0.6, 2.25);
+    // Mouse
+    const mouseGeometry = new THREE.BoxGeometry(0.7, 0.4, 1.5);
     const mouseMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
     const mouse01 = new THREE.Mesh(mouseGeometry, mouseMaterial);
-    mouse01.position.set(5.25, 2.4, 3);
+    mouse01.position.set(3.5, 1.6, 2);
     mouse01.castShadow = true;
     computer.add(mouse01);
 
@@ -875,188 +421,79 @@ function createComputer(x, z) {
     return computer;
 }
 
-// Create first computer closer to player (left side)
-const computer = createComputer(-30, 5);
+// Create a computer in the center of the field
+const computer = createComputer(0, 0);
 
 // Add a bright light above the computer desk
 const deskLight = new THREE.PointLight(0x00ffff, 2, 50);
-deskLight.position.set(-30, 10, 5);
+deskLight.position.set(0, 10, 0);
 deskLight.castShadow = true;
 scene.add(deskLight);
-
-// Create Product Table function
-function createProductTable(x, z) {
-    const table = new THREE.Group();
-
-    // Table surface (wooden)
-    const tableGeometry = new THREE.BoxGeometry(15, 1, 8);
-    const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
-    const tableSurface = new THREE.Mesh(tableGeometry, tableMaterial);
-    tableSurface.position.y = 3;
-    tableSurface.castShadow = true;
-    tableSurface.receiveShadow = true;
-    table.add(tableSurface);
-
-    // Table legs
-    const legGeometry = new THREE.BoxGeometry(0.8, 3, 0.8);
-    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
-
-    const positions = [
-        [-6.5, 1.5, 3.5],
-        [6.5, 1.5, 3.5],
-        [-6.5, 1.5, -3.5],
-        [6.5, 1.5, -3.5]
-    ];
-
-    positions.forEach(pos => {
-        const leg = new THREE.Mesh(legGeometry, legMaterial);
-        leg.position.set(pos[0], pos[1], pos[2]);
-        leg.castShadow = true;
-        table.add(leg);
-    });
-
-    // Create products with data
-    const productPositions = [
-        { x: -5, y: 4.5, z: 2, size: [2, 2, 2] },
-        { x: -2, y: 4.75, z: 2, size: [1.5, 2.5, 1.5] },
-        { x: 1, y: 4.25, z: 2, size: [2.5, 1.5, 2] },
-        { x: 4.5, y: 4.4, z: 2, size: [1.8, 1.8, 1.8] },
-        { x: -4, y: 4.1, z: -1.5, size: [2, 1.2, 2] },
-        { x: -1, y: 4.5, z: -1.5, size: [1.5, 2, 1.5] },
-        { x: 2, y: 4.25, z: -1.5, size: [2.2, 1.5, 1.8] },
-        { x: 5, y: 4.3, z: -1.5, size: [1.6, 1.6, 1.6] }
-    ];
-
-    const productColors = [0xff4444, 0x4444ff, 0x44ff44, 0xffff44, 0xff8844, 0xff44ff, 0x44ffff, 0xff88cc];
-
-    productPositions.forEach((pos, index) => {
-        const productGeo = new THREE.BoxGeometry(...pos.size);
-        const productMat = new THREE.MeshStandardMaterial({
-            color: productColors[index],
-            emissive: productColors[index],
-            emissiveIntensity: 0.2
-        });
-        const product = new THREE.Mesh(productGeo, productMat);
-        product.position.set(pos.x, pos.y, pos.z);
-        product.castShadow = true;
-        product.userData = { isProduct: true, productIndex: index };
-        clickableProducts.push(product);
-        table.add(product);
-    });
-
-    // Sign on front of table
-    const signGeo = new THREE.BoxGeometry(8, 1.5, 0.2);
-    const signMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const sign = new THREE.Mesh(signGeo, signMat);
-    sign.position.set(0, 2, 4.1);
-    sign.castShadow = true;
-    table.add(sign);
-
-    // Sign text (using canvas texture)
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 512, 128);
-    ctx.fillStyle = '#333333';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('PRODUCTOS EN VENTA', 256, 80);
-
-    const textTexture = new THREE.CanvasTexture(canvas);
-    const textGeo = new THREE.PlaneGeometry(7.5, 1.2);
-    const textMat = new THREE.MeshStandardMaterial({ map: textTexture });
-    const textPlane = new THREE.Mesh(textGeo, textMat);
-    textPlane.position.set(0, 2, 4.2);
-    table.add(textPlane);
-
-    table.position.set(x, 0, z);
-    scene.add(table);
-    return table;
-}
-
-// Create product table - moved further back
-const productTable = createProductTable(0, -65);
-
-// Add light above product table
-const tableLight = new THREE.PointLight(0xffffff, 3, 50);
-tableLight.position.set(0, 10, -65);
-tableLight.castShadow = true;
-scene.add(tableLight);
 
 // Create White Desktop PC Desk function
 function createWhiteDesktop(x, z) {
     const desktop = new THREE.Group();
 
-    // Desk (1.5x bigger)
-    const deskGeometry = new THREE.BoxGeometry(12, 1.5, 5.25);
+    // Desk
+    const deskGeometry = new THREE.BoxGeometry(8, 1, 3.5);
     const deskMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
     const desk = new THREE.Mesh(deskGeometry, deskMaterial);
-    desk.position.y = 0.75;
+    desk.position.y = 0.5;
     desk.castShadow = true;
     desk.receiveShadow = true;
     desktop.add(desk);
 
-    // White Desktop PC Tower (on the right side of desk) (1.5x bigger)
-    const pcGeometry = new THREE.BoxGeometry(2.25, 5.25, 1.5);
+    // White Desktop PC Tower (on the right side of desk)
+    const pcGeometry = new THREE.BoxGeometry(1.5, 3.5, 1);
     const pcMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const pc = new THREE.Mesh(pcGeometry, pcMaterial);
-    pc.position.set(4.5, 3.3, 0);
+    pc.position.set(3, 2.2, 0);
     pc.castShadow = true;
     desktop.add(pc);
 
-    // PC Front Panel (darker) (1.5x bigger)
-    const panelGeometry = new THREE.BoxGeometry(2.1, 1.8, 0.225);
+    // PC Front Panel (darker)
+    const panelGeometry = new THREE.BoxGeometry(1.4, 1.2, 0.15);
     const panelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
     const panel = new THREE.Mesh(panelGeometry, panelMaterial);
-    panel.position.set(4.5, 1.95, 0.75);
+    panel.position.set(3, 1.3, 0.5);
     panel.castShadow = true;
     desktop.add(panel);
 
-    // Monitor (1.5x bigger)
-    const monitorGeometry = new THREE.BoxGeometry(6, 4.5, 0.6);
+    // Monitor (smaller than first one)
+    const monitorGeometry = new THREE.BoxGeometry(4, 3, 0.4);
     const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
     const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
-    monitor.position.set(-2.25, 4.5, 0);
+    monitor.position.set(-1.5, 3, 0);
     monitor.castShadow = true;
     desktop.add(monitor);
 
-    // Monitor Screen (1.5x bigger)
-    const screenGeometry = new THREE.BoxGeometry(5.7, 4.2, 0.45);
-
-    // Create initial browser UI for this monitor
-    const initialBrowserUI2 = new BrowserUI(1024, 768);
-    initialBrowserUI2.draw();
-
+    // Monitor Screen (blue)
+    const screenGeometry = new THREE.BoxGeometry(3.8, 2.8, 0.3);
     const screenMaterial = new THREE.MeshStandardMaterial({
-        map: initialBrowserUI2.texture,
+        map: browserUI.texture,
         emissive: 0x1a1a1a,
         emissiveIntensity: 0.2
     });
     const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-    screen.position.set(-2.25, 4.5, 0.375);
+    screen.position.set(-1.5, 3, 0.25);
     screen.castShadow = true;
     screen.userData = { isMonitor: true };
     clickableMonitors.push(screen);
     desktop.add(screen);
 
-    // Store the browser UI for this monitor
-    monitorBrowsers.set(screen, initialBrowserUI2);
-
-    // Keyboard (1.5x bigger)
-    const keyboardGeometry = new THREE.BoxGeometry(6, 0.6, 2.25);
+    // Keyboard
+    const keyboardGeometry = new THREE.BoxGeometry(4, 0.4, 1.5);
     const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
     const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
-    keyboard.position.set(-2.25, 1.5, 1.95);
+    keyboard.position.set(-1.5, 1, 1.3);
     keyboard.castShadow = true;
     desktop.add(keyboard);
 
-    // Mouse (1.5x bigger)
-    const mouseGeometry = new THREE.BoxGeometry(0.9, 0.6, 1.8);
+    // Mouse
+    const mouseGeometry = new THREE.BoxGeometry(0.6, 0.4, 1.2);
     const mouseMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd });
     const mouse = new THREE.Mesh(mouseGeometry, mouseMaterial);
-    mouse.position.set(0.75, 1.65, 2.4);
+    mouse.position.set(0.5, 1.1, 1.6);
     mouse.castShadow = true;
     desktop.add(mouse);
 
@@ -1065,12 +502,12 @@ function createWhiteDesktop(x, z) {
     return desktop;
 }
 
-// Create second desk with white desktop PC (closer to player, right side)
-const whiteDesktop = createWhiteDesktop(30, 5);
+// Create second desk with white desktop PC
+const whiteDesktop = createWhiteDesktop(25, 0);
 
 // Add light above second desk
 const desktopLight = new THREE.PointLight(0x0066ff, 2, 50);
-desktopLight.position.set(30, 10, 5);
+desktopLight.position.set(25, 10, 0);
 desktopLight.castShadow = true;
 scene.add(desktopLight);
 
@@ -1243,17 +680,7 @@ document.addEventListener('click', (e) => {
     if (monitorIntersects.length > 0) {
         const clickedMonitor = monitorIntersects[0].object;
         if (clickedMonitor.userData.isMonitor) {
-            openBrowserInput(clickedMonitor);
-            return;
-        }
-    }
-
-    // Check for intersections with products
-    const productIntersects = raycaster.intersectObjects(clickableProducts);
-    if (productIntersects.length > 0) {
-        const clickedProduct = productIntersects[0].object;
-        if (clickedProduct.userData.isProduct) {
-            showProductModal(clickedProduct.userData.productIndex);
+            openBrowserInput();
             return;
         }
     }
@@ -2042,7 +1469,6 @@ function animate() {
     }
 
     renderer.render(scene, camera);
-    cssRenderer.render(cssScene, camera);
 }
 
 // Handle window resize
@@ -2050,7 +1476,6 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    cssRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 animate();

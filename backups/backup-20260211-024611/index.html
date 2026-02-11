@@ -1,13 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Three.js Metaverse</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -292,15 +289,15 @@
     <div id="connectionStatus"></div>
     <div id="selectedPlayerIndicator"></div>
     <div id="chatContainer">
-        <div id="chatHeader">💬 Chat Global (Haz clic en un jugador para chat privado)</div>
+        <div id="chatHeader">💬 Global Chat (Click player to private chat)</div>
         <div id="chatTabs">
             <button class="chatTab active" data-tab="global">Global</button>
-            <button class="chatTab" data-tab="private">Privado</button>
+            <button class="chatTab" data-tab="private">Private</button>
         </div>
         <div id="chatMessages"></div>
         <div id="chatInputContainer">
-            <input type="text" id="chatInput" placeholder="Escribe un mensaje... (T para abrir)" maxlength="200">
-            <button id="chatSend">Enviar</button>
+            <input type="text" id="chatInput" placeholder="Type a message... (T to focus)" maxlength="200">
+            <button id="chatSend">Send</button>
         </div>
         <div id="chatReactions">
             <button class="reactionBtn" data-reaction="👍">👍</button>
@@ -310,27 +307,27 @@
         </div>
     </div>
     <div id="startScreen"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #FFB347 0%, #FF9A56 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; font-family: 'Rubik', sans-serif;">
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; font-family: Arial, sans-serif;">
         <h1 style="color: white; font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">🌐
-            Bienvenidos</h1>
-        <p style="color: white; font-size: 1.2em; margin-bottom: 40px; max-width: 600px; text-align: center;">Explora un
-            mundo 3D virtual con amigos, edificios y experiencias interactivas</p>
+            Welcome to the Metaverse</h1>
+        <p style="color: white; font-size: 1.2em; margin-bottom: 40px; max-width: 600px; text-align: center;">Explore a
+            virtual 3D world with friends, buildings, and interactive experiences</p>
 
         <div
             style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; backdrop-filter: blur(10px); margin-bottom: 30px; color: white; text-align: left; max-width: 500px;">
-            <h3 style="margin-top: 0;">Controles:</h3>
-            <p>🎮 <strong>WASD</strong> o <strong>Flechas</strong> - Mover</p>
-            <p>🖱️ <strong>Arrastra el Mouse</strong> - Mirar Alrededor</p>
-            <p>⌨️ <strong>Espacio</strong> - Saltar</p>
-            <p>💬 <strong>T</strong> - Abrir Chat</p>
+            <h3 style="margin-top: 0;">Controls:</h3>
+            <p>🎮 <strong>WASD</strong> or <strong>Arrow Keys</strong> - Move</p>
+            <p>🖱️ <strong>Mouse Drag</strong> - Look Around</p>
+            <p>⌨️ <strong>Space</strong> - Jump</p>
+            <p>💬 <strong>T</strong> - Open Chat</p>
         </div>
 
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-            <input type="text" id="playerName" placeholder="Ingresa tu nombre" maxlength="16"
+            <input type="text" id="playerName" placeholder="Enter your name" maxlength="16"
                 style="padding: 12px 20px; font-size: 1.1em; border: none; border-radius: 8px; width: 250px; text-align: center;">
             <button id="enterBtn"
-                style="padding: 15px 50px; font-size: 1.2em; background: white; color: #FF6B35; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
-                Haz clic para Entrar
+                style="padding: 15px 50px; font-size: 1.2em; background: white; color: #667eea; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
+                Click to Enter
             </button>
         </div>
     </div>
