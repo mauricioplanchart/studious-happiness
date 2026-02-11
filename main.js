@@ -1,5 +1,25 @@
 import * as THREE from 'three';
 
+// ============================================
+// GLOBAL VARIABLE DECLARATIONS (ALL AT TOP)
+// ============================================
+let chatContainer = null;
+let connectionStatus = null;
+let chatInput = null;
+let chatMessages = null;
+let isChatFocused = false;
+let gameStarted = false;
+let localPlayer = null;
+let otherPlayers = new Map();
+let localPlayerId = null;
+let selectedPlayer = null;
+let desiredPlayerName = '';
+let localPlayerName = 'Player';
+let nameSent = false;
+let ws = null;
+let hasInit = false;
+let clickableMonitors = [];
+
 // Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB); // Sky blue
@@ -15,7 +35,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -40,6 +60,244 @@ const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
+
+// Create a simulated browser UI
+class BrowserUI {
+    constructor(width = 1024, height = 768) {
+        this.width = width;
+        this.height = height;
+        this.currentURL = "https://google.com";
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.ctx = this.canvas.getContext('2d');
+        this.texture = new THREE.CanvasTexture(this.canvas);
+        this.texture.magFilter = THREE.LinearFilter;
+        this.texture.minFilter = THREE.LinearFilter;
+    }
+
+    draw() {
+        const ctx = this.ctx;
+        const w = this.width;
+        const h = this.height;
+
+        // Background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+
+        // Browser chrome (top bar)
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, w, 60);
+
+        // Back button
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(10, 10, 35, 40);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('←', 18, 38);
+
+        // Address bar
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 2;
+        ctx.fillRect(55, 10, w - 110, 40);
+        ctx.strokeRect(55, 10, w - 110, 40);
+
+        ctx.fillStyle = '#666666';
+        ctx.font = '14px Arial';
+        ctx.fillText(this.currentURL, 65, 37);
+
+        // Reload button
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(w - 50, 10, 40, 40);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText('⟳', w - 42, 36);
+
+        // Tab bar
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 60, w, 30);
+        ctx.fillStyle = '#4a90e2';
+        ctx.fillRect(10, 60, 100, 30);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('Google Search', 20, 80);
+
+        // Content area
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 90, w, h - 90);
+
+        // Draw sample content (Google-like search interface)
+        ctx.fillStyle = '#4a90e2';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('G', w / 2 - 100, 200);
+        ctx.fillStyle = '#ea4335';
+        ctx.fillText('o', w / 2 - 40, 200);
+        ctx.fillStyle = '#fbbc04';
+        ctx.fillText('o', w / 2 + 20, 200);
+        ctx.fillStyle = '#4a90e2';
+        ctx.fillText('g', w / 2 + 80, 200);
+        ctx.fillStyle = '#ea4335';
+        ctx.fillText('l', w / 2 + 130, 200);
+        ctx.fillStyle = '#30a853';
+        ctx.fillText('e', w / 2 + 170, 200);
+
+        // Search box
+        ctx.fillStyle = '#f1f3f4';
+        ctx.strokeStyle = '#dadce0';
+        ctx.lineWidth = 2;
+        ctx.fillRect(w / 2 - 200, 270, 400, 50);
+        ctx.strokeRect(w / 2 - 200, 270, 400, 50);
+
+        ctx.fillStyle = '#999999';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Search or type URL...', w / 2, 302);
+
+        // Search button
+        ctx.fillStyle = '#4a90e2';
+        ctx.fillRect(w / 2 - 100, 350, 200, 40);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('Google Search', w / 2, 376);
+
+        this.texture.needsUpdate = true;
+    }
+}
+
+const browserUI = new BrowserUI(1024, 768);
+browserUI.draw();
+
+// Browser URL tracking
+let currentBrowserURL = "";
+let selectedMonitor = null;
+
+// Create browser URL input UI (HTML overlay)
+const browserInputHTML = `
+    <div id="browserInputOverlay" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+        background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
+        z-index: 9999; min-width: 400px; font-family: Arial, sans-serif;">
+        <h3 style="margin-top: 0; color: #333;">Enter Website URL</h3>
+        <input type="text" id="browserURLInput" placeholder="e.g., nytimes.com, google.com, wikipedia.org" 
+            style="width: 100%; padding: 10px; border: 2px solid #4a90e2; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button id="browserLoadBtn" style="flex: 1; padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Load</button>
+            <button id="browserCancelBtn" style="flex: 1; padding: 10px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
+        </div>
+        <p style="font-size: 12px; color: #999; margin-top: 10px;">Note: Some websites may not load due to security restrictions</p>
+    </div>
+    <div id="browserIframeContainer" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); z-index: 9998;">
+        <iframe id="browserIframe" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
+    </div>
+`;
+document.body.insertAdjacentHTML('beforeend', browserInputHTML);
+
+// Browser UI event listeners
+document.getElementById('browserLoadBtn').addEventListener('click', () => {
+    const url = document.getElementById('browserURLInput').value.trim();
+    if (url) {
+        loadBrowserURL(url);
+    }
+});
+
+document.getElementById('browserCancelBtn').addEventListener('click', () => {
+    closeBrowserInput();
+});
+
+document.getElementById('browserURLInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        const url = document.getElementById('browserURLInput').value.trim();
+        if (url) loadBrowserURL(url);
+    }
+});
+
+function openBrowserInput() {
+    document.getElementById('browserInputOverlay').style.display = 'block';
+    document.getElementById('browserURLInput').focus();
+    document.getElementById('browserURLInput').value = '';
+}
+
+function closeBrowserInput() {
+    document.getElementById('browserInputOverlay').style.display = 'none';
+}
+
+function loadBrowserURL(url) {
+    // Add protocol if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
+
+    // Close input overlay and show iframe
+    closeBrowserInput();
+
+    const iframeContainer = document.getElementById('browserIframeContainer');
+    const iframe = document.getElementById('browserIframe');
+
+    // Note: This will only work for CORS-enabled websites
+    // For security, we'll use an approach that works for more sites
+    iframe.src = url;
+    iframeContainer.style.display = 'block';
+
+    currentBrowserURL = url;
+}
+
+// Close browser iframe when clicking outside
+document.getElementById('browserIframeContainer').addEventListener('click', (e) => {
+    if (e.target.id === 'browserIframeContainer') {
+        document.getElementById('browserIframeContainer').style.display = 'none';
+    }
+});
+
+// Escape key to close browser
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeBrowserInput();
+        document.getElementById('browserIframeContainer').style.display = 'none';
+    }
+});
+
+// Helper functions for avatar names (moved before use)
+function sanitizeName(name) {
+    if (!name) return '';
+    return name.toString().trim().slice(0, 16);
+}
+
+function createNameLabel(name) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = 'Bold 20px Arial';
+    context.fillStyle = 'white';
+    context.textAlign = 'center';
+    context.fillText(name, canvas.width / 2, canvas.height / 2 + 7);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.position.y = 7;
+    sprite.scale.set(4, 1, 1);
+
+    return { sprite, texture };
+}
+
+function setAvatarName(avatar, name) {
+    const safeName = sanitizeName(name) || 'Player';
+    avatar.userData.displayName = safeName;
+
+    if (avatar.userData.nameLabel) {
+        avatar.remove(avatar.userData.nameLabel.sprite);
+        avatar.userData.nameLabel.texture.dispose();
+    }
+
+    const label = createNameLabel(safeName);
+    avatar.add(label.sprite);
+    avatar.userData.nameLabel = label;
+}
 
 // Create buildings
 function createBuilding(x, z, width, height, depth, color) {
@@ -106,6 +364,153 @@ for (let i = 0; i < 20; i++) {
     }
 }
 
+// Create Computer function
+function createComputer(x, z) {
+    const computer = new THREE.Group();
+
+    // Large Visible Desk - Simple brown rectangle
+    const deskGeometry = new THREE.BoxGeometry(12, 1.5, 6);
+    const deskMaterial = new THREE.MeshStandardMaterial({ color: 0xCD853F, metalness: 0.3, roughness: 0.7 });
+    const desk = new THREE.Mesh(deskGeometry, deskMaterial);
+    desk.position.y = 0.75;
+    desk.castShadow = true;
+    desk.receiveShadow = true;
+    computer.add(desk);
+
+    // Large Monitor
+    const monitorGeometry = new THREE.BoxGeometry(5.5, 4, 0.5);
+    const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+    const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
+    monitor.position.set(0, 3.5, 0);
+    monitor.castShadow = true;
+    monitor.receiveShadow = true;
+    computer.add(monitor);
+
+    // Bright Screen (very visible)
+    const screenGeometry = new THREE.BoxGeometry(5, 3.8, 0.4);
+    const screenMaterial = new THREE.MeshStandardMaterial({
+        map: browserUI.texture,
+        emissive: 0x333333,
+        emissiveIntensity: 0.2
+    });
+    const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+    screen.position.set(0, 3.5, 0.3);
+    screen.castShadow = true;
+    screen.userData = { isMonitor: true };
+    clickableMonitors.push(screen);
+    computer.add(screen);
+
+    // Keyboard
+    const keyboardGeometry = new THREE.BoxGeometry(5, 0.4, 2);
+    const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+    const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
+    keyboard.position.set(0, 1.5, 1.5);
+    keyboard.castShadow = true;
+    computer.add(keyboard);
+
+    // Mouse
+    const mouseGeometry = new THREE.BoxGeometry(0.7, 0.4, 1.5);
+    const mouseMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
+    const mouse01 = new THREE.Mesh(mouseGeometry, mouseMaterial);
+    mouse01.position.set(3.5, 1.6, 2);
+    mouse01.castShadow = true;
+    computer.add(mouse01);
+
+    computer.position.set(x, 0, z);
+    scene.add(computer);
+    return computer;
+}
+
+// Create a computer in the center of the field
+const computer = createComputer(0, 0);
+
+// Add a bright light above the computer desk
+const deskLight = new THREE.PointLight(0x00ffff, 2, 50);
+deskLight.position.set(0, 10, 0);
+deskLight.castShadow = true;
+scene.add(deskLight);
+
+// Create White Desktop PC Desk function
+function createWhiteDesktop(x, z) {
+    const desktop = new THREE.Group();
+
+    // Desk
+    const deskGeometry = new THREE.BoxGeometry(8, 1, 3.5);
+    const deskMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
+    const desk = new THREE.Mesh(deskGeometry, deskMaterial);
+    desk.position.y = 0.5;
+    desk.castShadow = true;
+    desk.receiveShadow = true;
+    desktop.add(desk);
+
+    // White Desktop PC Tower (on the right side of desk)
+    const pcGeometry = new THREE.BoxGeometry(1.5, 3.5, 1);
+    const pcMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const pc = new THREE.Mesh(pcGeometry, pcMaterial);
+    pc.position.set(3, 2.2, 0);
+    pc.castShadow = true;
+    desktop.add(pc);
+
+    // PC Front Panel (darker)
+    const panelGeometry = new THREE.BoxGeometry(1.4, 1.2, 0.15);
+    const panelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+    panel.position.set(3, 1.3, 0.5);
+    panel.castShadow = true;
+    desktop.add(panel);
+
+    // Monitor (smaller than first one)
+    const monitorGeometry = new THREE.BoxGeometry(4, 3, 0.4);
+    const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
+    monitor.position.set(-1.5, 3, 0);
+    monitor.castShadow = true;
+    desktop.add(monitor);
+
+    // Monitor Screen (blue)
+    const screenGeometry = new THREE.BoxGeometry(3.8, 2.8, 0.3);
+    const screenMaterial = new THREE.MeshStandardMaterial({
+        map: browserUI.texture,
+        emissive: 0x1a1a1a,
+        emissiveIntensity: 0.2
+    });
+    const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+    screen.position.set(-1.5, 3, 0.25);
+    screen.castShadow = true;
+    screen.userData = { isMonitor: true };
+    clickableMonitors.push(screen);
+    desktop.add(screen);
+
+    // Keyboard
+    const keyboardGeometry = new THREE.BoxGeometry(4, 0.4, 1.5);
+    const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+    const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
+    keyboard.position.set(-1.5, 1, 1.3);
+    keyboard.castShadow = true;
+    desktop.add(keyboard);
+
+    // Mouse
+    const mouseGeometry = new THREE.BoxGeometry(0.6, 0.4, 1.2);
+    const mouseMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+    const mouse = new THREE.Mesh(mouseGeometry, mouseMaterial);
+    mouse.position.set(0.5, 1.1, 1.6);
+    mouse.castShadow = true;
+    desktop.add(mouse);
+
+    desktop.position.set(x, 0, z);
+    scene.add(desktop);
+    return desktop;
+}
+
+// Create second desk with white desktop PC
+const whiteDesktop = createWhiteDesktop(25, 0);
+
+// Add light above second desk
+const desktopLight = new THREE.PointLight(0x0066ff, 2, 50);
+desktopLight.position.set(25, 10, 0);
+desktopLight.castShadow = true;
+scene.add(desktopLight);
+
 // Create Avatar function
 function createAvatar(x, z, color) {
     const avatar = new THREE.Group();
@@ -126,6 +531,51 @@ function createAvatar(x, z, color) {
     head.castShadow = true;
     avatar.add(head);
 
+    // Left Eye (flat)
+    const eyeGeometry = new THREE.CircleGeometry(0.12, 16);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    leftEye.position.set(-0.18, 5.85, 0.6);
+    leftEye.castShadow = true;
+    avatar.add(leftEye);
+
+    // Left Eye Pupil (flat)
+    const pupilGeometry = new THREE.CircleGeometry(0.06, 16);
+    const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    leftPupil.position.set(-0.18, 5.85, 0.61);
+    leftPupil.castShadow = true;
+    avatar.add(leftPupil);
+
+    // Right Eye (flat)
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    rightEye.position.set(0.18, 5.85, 0.6);
+    rightEye.castShadow = true;
+    avatar.add(rightEye);
+
+    // Right Eye Pupil (flat)
+    const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    rightPupil.position.set(0.18, 5.85, 0.61);
+    rightPupil.castShadow = true;
+    avatar.add(rightPupil);
+
+    // Nose (flat)
+    const noseGeometry = new THREE.CircleGeometry(0.08, 16);
+    const noseMaterial = new THREE.MeshStandardMaterial({ color: 0xf5c299 });
+    const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+    nose.position.set(0, 5.6, 0.6);
+    nose.rotation.z = 0;
+    nose.castShadow = true;
+    avatar.add(nose);
+
+    // Mouth (flat 2D line)
+    const mouthGeometry = new THREE.BoxGeometry(0.25, 0.05, 0.01);
+    const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0xff9999 });
+    const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+    mouth.position.set(0, 5.35, 0.6);
+    mouth.castShadow = true;
+    avatar.add(mouth);
+
     // Left Arm
     const armGeometry = new THREE.BoxGeometry(0.4, 1.8, 0.4);
     const armMaterial = new THREE.MeshStandardMaterial({ color: color || 0x3498db });
@@ -139,6 +589,20 @@ function createAvatar(x, z, color) {
     rightArm.position.set(1, 3.5, 0);
     rightArm.castShadow = true;
     avatar.add(rightArm);
+
+    // Left Hand
+    const handGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+    const handMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+    const leftHand = new THREE.Mesh(handGeometry, handMaterial);
+    leftHand.position.set(-1, 2.3, 0);
+    leftHand.castShadow = true;
+    avatar.add(leftHand);
+
+    // Right Hand
+    const rightHand = new THREE.Mesh(handGeometry, handMaterial);
+    rightHand.position.set(1, 2.3, 0);
+    rightHand.castShadow = true;
+    avatar.add(rightHand);
 
     // Left Leg
     const legGeometry = new THREE.BoxGeometry(0.5, 2, 0.5);
@@ -160,48 +624,9 @@ function createAvatar(x, z, color) {
     return avatar;
 }
 
-function sanitizeName(name) {
-    if (!name) return '';
-    return name.toString().trim().slice(0, 16);
-}
-
-function createNameLabel(name) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 64;
-    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.font = 'Bold 20px Arial';
-    context.fillStyle = 'white';
-    context.textAlign = 'center';
-    context.fillText(name, canvas.width / 2, canvas.height / 2 + 7);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.position.y = 7;
-    sprite.scale.set(4, 1, 1);
-
-    return { sprite, texture };
-}
-
-function setAvatarName(avatar, name) {
-    const safeName = sanitizeName(name) || 'Player';
-    avatar.userData.displayName = safeName;
-
-    if (avatar.userData.nameLabel) {
-        avatar.remove(avatar.userData.nameLabel.sprite);
-        avatar.userData.nameLabel.texture.dispose();
-    }
-
-    const label = createNameLabel(safeName);
-    avatar.add(label.sprite);
-    avatar.userData.nameLabel = label;
-}
-
 // Create NPC avatars with random colors
 const avatars = [];
+/*
 const avatarColors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22, 0x34495e];
 
 for (let i = 0; i < 8; i++) {
@@ -217,14 +642,16 @@ for (let i = 0; i < 8; i++) {
         avatars.push(avatar);
     }
 }
+*/
 
 // Create local player avatar
-const localPlayer = createAvatar(0, 30, 0x00ff00); // Green color for local player
-localPlayer.position.y = 0;
-setAvatarName(localPlayer, 'Player');
-let desiredPlayerName = '';
-let localPlayerName = 'Player';
-let nameSent = false;
+try {
+    localPlayer = createAvatar(0, 30, 0x00ff00); // Green color for local player
+    localPlayer.position.y = 0;
+    // Don't set name here - do it when game starts
+} catch (e) {
+    console.error('Error creating local player avatar:', e.message);
+}
 
 // Third-person camera controls
 let mouseDown = false;
@@ -234,10 +661,9 @@ let cameraAngleH = 0; // Horizontal angle
 let cameraAngleV = 0.3; // Vertical angle (looking down slightly)
 const cameraDistance = 15;
 
-// Raycaster for clicking on avatars
+// Raycaster for clicking on avatars and objects
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let selectedPlayer = null;
 
 document.addEventListener('click', (e) => {
     if (!gameStarted || isChatFocused) return;
@@ -248,6 +674,16 @@ document.addEventListener('click', (e) => {
 
     // Update raycaster
     raycaster.setFromCamera(mouse, camera);
+
+    // Check for intersections with monitors first
+    const monitorIntersects = raycaster.intersectObjects(clickableMonitors);
+    if (monitorIntersects.length > 0) {
+        const clickedMonitor = monitorIntersects[0].object;
+        if (clickedMonitor.userData.isMonitor) {
+            openBrowserInput();
+            return;
+        }
+    }
 
     // Check for intersections with other players
     const clickableObjects = [];
@@ -327,34 +763,63 @@ document.addEventListener('mousemove', (e) => {
     }
 });
 
-// Click to start
-let gameStarted = false;
-const instructions = document.getElementById('instructions');
-const startButton = document.getElementById('startButton');
-const nameInput = document.getElementById('playerNameInput');
+// Click to start - MINIMAL VERSION
 
-function startExperience() {
-    if (gameStarted) return;
-    desiredPlayerName = nameInput ? sanitizeName(nameInput.value) : '';
-    localPlayerName = desiredPlayerName || 'Player';
-    setAvatarName(localPlayer, localPlayerName);
-    nameSent = false;
-    instructions.style.display = 'none';
-    gameStarted = true;
-    chatContainer.style.display = 'flex';
-    connectionStatus.style.display = 'block';
-    updateConnectionStatus();
-    applyLocalName();
-}
+function initStartButton() {
+    console.log('=== Button Init ===');
 
-startButton.addEventListener('click', startExperience);
+    const startScreen = document.getElementById('startScreen');
+    const enterBtn = document.getElementById('enterBtn');
+    const playerName = document.getElementById('playerName');
 
-if (nameInput) {
-    nameInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            startExperience();
+    if (!enterBtn) {
+        console.error('Button not found!');
+        return;
+    }
+
+    enterBtn.addEventListener('click', function (e) {
+        console.log('Button clicked!');
+        e.preventDefault();
+
+        try {
+            // Hide screen
+            if (startScreen) startScreen.style.display = 'none';
+
+            // Get name
+            const name = (playerName && playerName.value) ? playerName.value.trim() : 'Player';
+            console.log('Name entered:', name);
+
+            // Set name on avatar
+            if (localPlayer && name) {
+                localPlayerName = name;
+                if (setAvatarName && typeof setAvatarName === 'function') {
+                    try {
+                        setAvatarName(localPlayer, name);
+                        console.log('Avatar name set to:', name);
+                    } catch (err) {
+                        console.error('Error setting avatar name:', err.message);
+                    }
+                }
+            }
+
+            // Start game
+            gameStarted = true;
+            console.log('gameStarted = true');
+
+            // Show UI after a tiny delay to let things settle
+            setTimeout(function () {
+                if (chatContainer) chatContainer.style.display = 'flex';
+                if (connectionStatus) connectionStatus.style.display = 'block';
+                console.log('UI shown');
+            }, 100);
+
+            console.log('SUCCESS - Game started!');
+        } catch (err) {
+            console.error('Error:', err.message);
         }
     });
+
+    console.log('Button ready');
 }
 
 // Movement
@@ -434,11 +899,7 @@ let canJump = true;
 const gravity = -0.5;
 
 // Multiplayer setup
-const otherPlayers = new Map();
-let localPlayerId = null;
-let ws = null;
 const speechBubbleTimeouts = new Map();
-let hasInit = false;
 const typingTimeouts = new Map();
 
 function createSpeechBubble(text) {
@@ -745,15 +1206,14 @@ function sendPositionUpdate() {
 connectMultiplayer();
 
 // Chat system
-const chatContainer = document.getElementById('chatContainer');
-const chatMessages = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
+chatContainer = document.getElementById('chatContainer');
+chatMessages = document.getElementById('chatMessages');
+chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
-const connectionStatus = document.getElementById('connectionStatus');
+connectionStatus = document.getElementById('connectionStatus');
 const chatTabs = document.querySelectorAll('.chatTab');
 const reactionButtons = document.querySelectorAll('.reactionBtn');
 
-let isChatFocused = false;
 let currentChatTab = 'global';
 let isTyping = false;
 let typingTimer = null;
@@ -1019,3 +1479,22 @@ window.addEventListener('resize', () => {
 });
 
 animate();
+
+// Initialize start button after everything is set up
+console.log('Script loaded, waiting for safe initialization');
+
+function safeInit() {
+    try {
+        console.log('Safe init running');
+        initStartButton();
+    } catch (e) {
+        console.error('Error in safe init:', e.message);
+        setTimeout(safeInit, 100); // Retry
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', safeInit);
+} else {
+    setTimeout(safeInit, 100);
+}
