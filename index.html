@@ -112,6 +112,26 @@
             word-wrap: break-word;
         }
 
+        .chatMessage.bubble {
+            max-width: 88%;
+            padding: 8px 10px;
+            border-radius: 14px;
+            margin: 8px 0;
+            line-height: 1.35;
+        }
+
+        .chatMessage.self {
+            margin-left: auto;
+            background: rgba(102, 126, 234, 0.32);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+        }
+
+        .chatMessage.other {
+            margin-right: auto;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
         .chatMessage.system {
             color: #f39c12;
             font-style: italic;
@@ -244,6 +264,11 @@
             padding-left: 8px;
         }
 
+        .chatMessage.private.self {
+            background: rgba(118, 75, 162, 0.35);
+            border-left-color: #8e6ad6;
+        }
+
         /* Subtle avatar improvements */
         .avatar,
         .player-avatar,
@@ -292,7 +317,7 @@
     <div id="connectionStatus"></div>
     <div id="selectedPlayerIndicator"></div>
     <div id="chatContainer">
-        <div id="chatHeader">💬 Chat Global (Haz clic en un jugador para chat privado)</div>
+        <div id="chatHeader">💬 Chat Global (Haz clic en un jugador para conversación privada)</div>
         <div id="chatTabs">
             <button class="chatTab active" data-tab="global">Global</button>
             <button class="chatTab" data-tab="private">Privado</button>
@@ -324,6 +349,8 @@
             <p>⌨️ <strong>Espacio</strong> - Saltar</p>
             <p>💬 <strong>T</strong> - Abrir Chat</p>
         </div>
+
+
 
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
             <input type="text" id="playerName" placeholder="Ingresa tu nombre" maxlength="16"

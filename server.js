@@ -70,11 +70,20 @@ wss.on('connection', (ws) => {
                     break;
 
                 case 'typing':
-                    broadcast({
-                        type: 'typing',
-                        playerId: playerId,
-                        isTyping: !!message.isTyping
-                    }, playerId);
+                    if (message.toPlayerId && connections.has(message.toPlayerId)) {
+                        sendToPlayer(message.toPlayerId, {
+                            type: 'typing',
+                            playerId: playerId,
+                            toPlayerId: message.toPlayerId,
+                            isTyping: !!message.isTyping
+                        });
+                    } else {
+                        broadcast({
+                            type: 'typing',
+                            playerId: playerId,
+                            isTyping: !!message.isTyping
+                        }, playerId);
+                    }
                     break;
 
                 case 'reaction':
@@ -107,30 +116,49 @@ wss.on('connection', (ws) => {
                     const playerName = players.get(playerId)?.name;
                     const displayName = playerName && playerName.length > 0 ? playerName : playerId.substr(0, 6);
                     if (message.private && message.toPlayerId) {
+                        if (!connections.has(message.toPlayerId)) {
+                            sendToPlayer(playerId, {
+                                type: 'chat',
+                                id: messageId++,
+                                playerId: 'system',
+                                username: 'System',
+                                message: 'Private message failed: player is offline.',
+                                timestamp: Date.now(),
+                                private: false
+                            });
+                            break;
+                        }
+
+                        const cleanPrivateMessage = (message.message || '').toString().trim().slice(0, 200);
+                        if (!cleanPrivateMessage) {
+                            break;
+                        }
+
                         const privateMsg = {
                             type: 'chat',
                             id: messageId++,
                             playerId: playerId,
+                            toPlayerId: message.toPlayerId,
                             username: displayName,
-                            message: message.message,
+                            message: cleanPrivateMessage,
                             timestamp: Date.now(),
                             private: true
                         };
 
-                        if (connections.has(playerId)) {
-                            connections.get(playerId).send(JSON.stringify(privateMsg));
+                        sendToPlayer(playerId, privateMsg);
+                        sendToPlayer(message.toPlayerId, privateMsg);
+                    } else {
+                        const cleanMessage = (message.message || '').toString().trim().slice(0, 200);
+                        if (!cleanMessage) {
+                            break;
                         }
 
-                        if (connections.has(message.toPlayerId)) {
-                            connections.get(message.toPlayerId).send(JSON.stringify(privateMsg));
-                        }
-                    } else {
                         broadcast({
                             type: 'chat',
                             id: messageId++,
                             playerId: playerId,
                             username: displayName,
-                            message: message.message,
+                            message: cleanMessage,
                             timestamp: Date.now(),
                             private: false
                         });
@@ -165,17 +193,18 @@ wss.on('connection', (ws) => {
 
 function broadcast(message, excludePlayerId = null) {
     const messageStr = JSON.stringify(message);
-    wss.clients.forEach((client) => {
-        if (client.readyState === 1) {
-            const shouldSend = excludePlayerId === null ||
-                !players.has(excludePlayerId) ||
-                Array.from(players.keys()).indexOf(excludePlayerId) !==
-                Array.from(wss.clients).indexOf(client);
-            if (shouldSend) {
-                client.send(messageStr);
-            }
+    connections.forEach((client, playerId) => {
+        if (client.readyState === 1 && playerId !== excludePlayerId) {
+            client.send(messageStr);
         }
     });
+}
+
+function sendToPlayer(playerId, message) {
+    const socket = connections.get(playerId);
+    if (socket && socket.readyState === 1) {
+        socket.send(JSON.stringify(message));
+    }
 }
 
 console.log('WebSocket server running on ws://localhost:8080');

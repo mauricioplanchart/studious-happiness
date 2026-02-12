@@ -64,35 +64,10 @@ directionalLight.shadow.mapSize.width = 2048;
 directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
 
-// Simple grass ground with basic texture
-const grassCanvas = document.createElement('canvas');
-grassCanvas.width = 256;
-grassCanvas.height = 256;
-const grassCtx = grassCanvas.getContext('2d');
-
-// Base grass color
-grassCtx.fillStyle = '#4a7c59';
-grassCtx.fillRect(0, 0, 256, 256);
-
-// Simple color variation
-const grassColors = ['#3a6b3a', '#4a7c59', '#527d52'];
-for (let i = 0; i < 1000; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const color = grassColors[Math.floor(Math.random() * grassColors.length)];
-    grassCtx.fillStyle = color;
-    grassCtx.fillRect(x, y, 3 + Math.random() * 3, 3 + Math.random() * 3);
-}
-
-const grassTexture = new THREE.CanvasTexture(grassCanvas);
-grassTexture.wrapS = THREE.RepeatWrapping;
-grassTexture.wrapT = THREE.RepeatWrapping;
-grassTexture.repeat.set(30, 30);
-
-// Ground
+// Simple solid grass ground
 const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
 const groundMaterial = new THREE.MeshStandardMaterial({
-    map: grassTexture,
+    color: 0x4a7c59,
     roughness: 0.9,
     metalness: 0.0
 });
@@ -106,8 +81,10 @@ class BrowserUI {
     constructor(width = 1024, height = 768) {
         this.width = width;
         this.height = height;
-        this.currentURL = "https://google.com";
-        this.currentSite = "google";
+        this.tabs = [{ url: 'https://google.com', title: 'Google' }];
+        this.activeTabIndex = 0;
+        this.history = ['https://google.com'];
+        this.historyIndex = 0;
         this.canvas = document.createElement('canvas');
         this.canvas.width = width;
         this.canvas.height = height;
@@ -115,31 +92,112 @@ class BrowserUI {
         this.texture = new THREE.CanvasTexture(this.canvas);
         this.texture.magFilter = THREE.LinearFilter;
         this.texture.minFilter = THREE.LinearFilter;
+        this.isLoading = false;
+        this.draw();
+    }
+
+    get currentURL() {
+        return this.tabs[this.activeTabIndex]?.url || 'https://google.com';
+    }
+
+    get currentSite() {
+        const url = this.currentURL.toLowerCase();
+        if (url.includes('google')) return 'google';
+        if (url.includes('youtube')) return 'youtube';
+        if (url.includes('wikipedia')) return 'wikipedia';
+        if (url.includes('github')) return 'github';
+        if (url.includes('twitter') || url.includes('x.com')) return 'twitter';
+        if (url.includes('reddit')) return 'reddit';
+        if (url.includes('amazon')) return 'amazon';
+        if (url.includes('linkedin')) return 'linkedin';
+        if (url.includes('netflix')) return 'netflix';
+        if (url.includes('twitch')) return 'twitch';
+        if (url.includes('facebook')) return 'facebook';
+        if (url.includes('instagram')) return 'instagram';
+        return 'generic';
     }
 
     loadURL(url) {
-        this.currentURL = url;
-
-        // Detect website type from URL
-        const urlLower = url.toLowerCase();
-        if (urlLower.includes('google')) {
-            this.currentSite = 'google';
-        } else if (urlLower.includes('youtube')) {
-            this.currentSite = 'youtube';
-        } else if (urlLower.includes('wikipedia')) {
-            this.currentSite = 'wikipedia';
-        } else if (urlLower.includes('github')) {
-            this.currentSite = 'github';
-        } else if (urlLower.includes('twitter') || urlLower.includes('x.com')) {
-            this.currentSite = 'twitter';
-        } else if (urlLower.includes('reddit')) {
-            this.currentSite = 'reddit';
-        } else if (urlLower.includes('amazon')) {
-            this.currentSite = 'amazon';
-        } else {
-            this.currentSite = 'generic';
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
         }
 
+        // Update current tab
+        this.tabs[this.activeTabIndex].url = url;
+        this.tabs[this.activeTabIndex].title = this.getTitleFromURL(url);
+
+        // Update history
+        this.history = this.history.slice(0, this.historyIndex + 1);
+        this.history.push(url);
+        this.historyIndex = this.history.length - 1;
+
+        this.draw();
+    }
+
+    getTitleFromURL(url) {
+        const urlLower = url.toLowerCase();
+        if (urlLower.includes('google')) return 'Google';
+        if (urlLower.includes('youtube')) return 'YouTube';
+        if (urlLower.includes('wikipedia')) return 'Wikipedia';
+        if (urlLower.includes('github')) return 'GitHub';
+        if (urlLower.includes('twitter') || urlLower.includes('x.com')) return 'X';
+        if (urlLower.includes('reddit')) return 'Reddit';
+        if (urlLower.includes('amazon')) return 'Amazon';
+        if (urlLower.includes('linkedin')) return 'LinkedIn';
+        if (urlLower.includes('netflix')) return 'Netflix';
+        if (urlLower.includes('twitch')) return 'Twitch';
+        if (urlLower.includes('facebook')) return 'Facebook';
+        if (urlLower.includes('instagram')) return 'Instagram';
+        return 'Website';
+    }
+
+    addNewTab(url = 'https://google.com') {
+        this.tabs.push({ url, title: this.getTitleFromURL(url) });
+        this.activeTabIndex = this.tabs.length - 1;
+        this.history = [url];
+        this.historyIndex = 0;
+        this.draw();
+    }
+
+    closeTab(index) {
+        if (this.tabs.length > 1) {
+            this.tabs.splice(index, 1);
+            if (this.activeTabIndex >= this.tabs.length) {
+                this.activeTabIndex = this.tabs.length - 1;
+            }
+            this.draw();
+        }
+    }
+
+    switchTab(index) {
+        if (index >= 0 && index < this.tabs.length) {
+            this.activeTabIndex = index;
+            this.draw();
+        }
+    }
+
+    goBack() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            this.tabs[this.activeTabIndex].url = this.history[this.historyIndex];
+            this.draw();
+        }
+    }
+
+    goForward() {
+        if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex++;
+            this.tabs[this.activeTabIndex].url = this.history[this.historyIndex];
+            this.draw();
+        }
+    }
+
+    reload() {
+        this.isLoading = true;
+        setTimeout(() => {
+            this.isLoading = false;
+            this.draw();
+        }, 500);
         this.draw();
     }
 
@@ -152,39 +210,105 @@ class BrowserUI {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
-        // Browser chrome (top bar)
+        // Tab bar
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(0, 0, w, 35);
+
+        let tabX = 10;
+        this.tabs.forEach((tab, index) => {
+            const tabWidth = 150;
+            const isActive = index === this.activeTabIndex;
+
+            if (isActive) {
+                ctx.fillStyle = '#ffffff';
+            } else {
+                ctx.fillStyle = '#d0d0d0';
+            }
+            ctx.fillRect(tabX, 5, tabWidth, 25);
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(tabX, 5, tabWidth, 25);
+
+            ctx.fillStyle = '#000000';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            const title = tab.title.substring(0, 12);
+            ctx.fillText(title, tabX + 8, 20);
+
+            // Close button on tabs
+            if (this.tabs.length > 1) {
+                ctx.fillStyle = '#666';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('✕', tabX + tabWidth - 10, 19);
+            }
+
+            tabX += tabWidth + 3;
+        });
+
+        // New tab button
+        ctx.fillStyle = '#d0d0d0';
+        ctx.fillRect(tabX, 5, 30, 25);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tabX, 5, 30, 25);
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('+', tabX + 15, 20);
+
+        // Browser chrome (navigation bar)
         ctx.fillStyle = '#f0f0f0';
-        ctx.fillRect(0, 0, w, 60);
+        ctx.fillRect(0, 35, w, 50);
 
         // Back button
-        ctx.fillStyle = '#e0e0e0';
-        ctx.fillRect(10, 10, 35, 40);
+        ctx.fillStyle = this.historyIndex > 0 ? '#cccccc' : '#e8e8e8';
+        ctx.fillRect(10, 40, 35, 40);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, 40, 35, 40);
         ctx.fillStyle = '#000000';
-        ctx.font = 'bold 24px Arial';
-        ctx.fillText('←', 18, 38);
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('←', 27, 60);
+
+        // Forward button
+        ctx.fillStyle = this.historyIndex < this.history.length - 1 ? '#cccccc' : '#e8e8e8';
+        ctx.fillRect(50, 40, 35, 40);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(50, 40, 35, 40);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('→', 67, 60);
+
+        // Reload button
+        ctx.fillStyle = '#cccccc';
+        ctx.fillRect(90, 40, 35, 40);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(90, 40, 35, 40);
+        ctx.fillStyle = this.isLoading ? '#ff6b6b' : '#000000';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.isLoading ? '⊙' : '⟳', 107, 60);
 
         // Address bar
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#cccccc';
         ctx.lineWidth = 2;
-        ctx.fillRect(55, 10, w - 110, 40);
-        ctx.strokeRect(55, 10, w - 110, 40);
+        ctx.fillRect(130, 40, w - 140, 40);
+        ctx.strokeRect(130, 40, w - 140, 40);
 
         ctx.fillStyle = '#666666';
-        ctx.font = '14px Arial';
+        ctx.font = '13px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText(this.currentURL, 65, 37);
-
-        // Reload button
-        ctx.fillStyle = '#e0e0e0';
-        ctx.fillRect(w - 50, 10, 40, 40);
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 20px Arial';
-        ctx.fillText('⟳', w - 42, 36);
+        ctx.fillText(this.currentURL.substring(8, 50) + '...', 140, 65);
 
         // Content area
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 60, w, h - 60);
+        ctx.fillRect(0, 85, w, h - 85);
 
         // Draw site-specific content
         this.drawSiteContent();
@@ -419,7 +543,6 @@ const monitorBrowsers = new Map();
 // CSS3D Scene for iframes
 const cssScene = new THREE.Scene();
 
-// Product data
 const productData = [
     {
         name: 'Laptop Gaming',
@@ -455,47 +578,19 @@ const productData = [
         description: 'Tablet de alta gama para diseño',
         image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400',
         buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Tablet%20Pro'
-    },
-    {
-        name: 'Teclado Mecánico',
-        price: '$179',
-        description: 'Teclado RGB para gaming',
-        image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Teclado'
-    },
-    {
-        name: 'Mouse Gamer',
-        price: '$89',
-        description: 'Mouse de alta precisión',
-        image: 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Mouse%20Gamer'
-    },
-    {
-        name: 'Consola Next-Gen',
-        price: '$499',
-        description: 'Consola de última generación',
-        image: 'https://images.unsplash.com/photo-1486401899868-0e435ed85128?w=400',
-        buyLink: 'https://wa.me/1234567890?text=Quiero%20comprar%20Consola'
     }
 ];
 
 // Browser URL tracking
 let selectedMonitor = null;
 
-// Create browser URL input UI (HTML overlay)
+// Create browser URL input UI (simple floating address bar)
 const browserInputHTML = `
-    <div id="browserInputOverlay" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-        background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
-        z-index: 9999; min-width: 400px; font-family: Arial, sans-serif;">
-        <h3 style="margin-top: 0; color: #333;">Enter Website URL</h3>
-        <input type="text" id="browserURLInput" placeholder="e.g., google.com, youtube.com, wikipedia.org" 
-            style="width: 100%; padding: 10px; border: 2px solid #4a90e2; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
-        <div style="margin-top: 15px; display: flex; gap: 10px;">
-            <button id="browserLoadBtn" style="flex: 1; padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Load on Monitor</button>
-            <button id="browserCancelBtn" style="flex: 1; padding: 10px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
-        </div>
-        <p style="font-size: 12px; color: #999; margin-top: 10px;">Try: google, youtube, wikipedia, github, twitter, reddit, amazon</p>
-    </div>
+    <input type="text" id="browserURLInput" placeholder="Escribe URL aquí... (google, youtube, wikipedia, github, twitter, reddit, amazon)" 
+        style="display: none; position: fixed; top: 20px; left: 20px; z-index: 9999; 
+        width: 400px; padding: 12px 15px; border: 2px solid #4a90e2; border-radius: 8px; 
+        font-size: 14px; box-sizing: border-box; font-family: Arial, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: white;">
     
     <div id="productModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; ">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); max-width: 500px; width: 90%;">
@@ -510,46 +605,48 @@ const browserInputHTML = `
 `;
 document.body.insertAdjacentHTML('beforeend', browserInputHTML);
 
-// Browser UI event listeners
-document.getElementById('browserLoadBtn').addEventListener('click', () => {
-    const url = document.getElementById('browserURLInput').value.trim();
-    if (url) {
-        loadBrowserURL(url);
-    }
-});
-
-document.getElementById('browserCancelBtn').addEventListener('click', () => {
-    closeBrowserInput();
-});
-
+// Browser URL input event listener
 document.getElementById('browserURLInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const url = document.getElementById('browserURLInput').value.trim();
-        if (url) loadBrowserURL(url);
+        if (url) {
+            loadBrowserURL(url);
+        }
+    }
+});
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeBrowserInput();
     }
 });
 
 function openBrowserInput(monitor) {
     selectedMonitor = monitor;
-    document.getElementById('browserInputOverlay').style.display = 'block';
-    document.getElementById('browserURLInput').focus();
+    const input = document.getElementById('browserURLInput');
+    input.style.display = 'block';
+    input.focus();
+    input.setSelectionRange(0, input.value.length); // Select all text
 
     // Show current URL if monitor has one
     const iframe = monitorIframes.get(monitor);
     if (iframe && iframe.element) {
         try {
             const currentUrl = iframe.element.src.replace('https://', '').replace('http://', '');
-            document.getElementById('browserURLInput').value = currentUrl;
+            input.value = currentUrl;
         } catch (e) {
-            document.getElementById('browserURLInput').value = '';
+            input.value = '';
         }
     } else {
-        document.getElementById('browserURLInput').value = '';
+        input.value = '';
     }
 }
 
 function closeBrowserInput() {
-    document.getElementById('browserInputOverlay').style.display = 'none';
+    const input = document.getElementById('browserURLInput');
+    input.style.display = 'none';
+    input.value = '';
     selectedMonitor = null;
 }
 
@@ -688,65 +785,23 @@ function setAvatarName(avatar, name) {
 function createHouse(x, z, color) {
     const house = new THREE.Group();
 
-    // House walls (wider)
-    const wallsGeo = new THREE.BoxGeometry(18, 8, 18);
+    // House walls - simple
+    const wallsGeo = new THREE.BoxGeometry(12, 6, 12);
     const wallsMat = new THREE.MeshStandardMaterial({ color: color || 0xf5deb3 });
     const walls = new THREE.Mesh(wallsGeo, wallsMat);
-    walls.position.y = 4;
+    walls.position.y = 3;
     walls.castShadow = true;
     walls.receiveShadow = true;
     house.add(walls);
 
-    // Roof (pyramid shape, wider)
-    const roofGeo = new THREE.ConeGeometry(14, 6, 4);
+    // Roof - simple
+    const roofGeo = new THREE.ConeGeometry(10, 4, 4);
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
     const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.y = 11;
+    roof.position.y = 8;
     roof.rotation.y = Math.PI / 4;
     roof.castShadow = true;
     house.add(roof);
-
-    // Door
-    const doorGeo = new THREE.BoxGeometry(3, 5, 0.3);
-    const doorMat = new THREE.MeshStandardMaterial({ color: 0x654321 });
-    const door = new THREE.Mesh(doorGeo, doorMat);
-    door.position.set(0, 2.5, 9.15);
-    door.castShadow = true;
-    house.add(door);
-
-    // Windows
-    const windowGeo = new THREE.BoxGeometry(2.5, 2.5, 0.3);
-    const windowMat = new THREE.MeshStandardMaterial({ color: 0x87ceeb, emissive: 0x87ceeb, emissiveIntensity: 0.3 });
-
-    // Front windows (3 windows for wider house)
-    const window1 = new THREE.Mesh(windowGeo, windowMat);
-    window1.position.set(-6, 5, 9.15);
-    house.add(window1);
-
-    const window2 = new THREE.Mesh(windowGeo, windowMat);
-    window2.position.set(6, 5, 9.15);
-    house.add(window2);
-    
-    // Additional windows on sides
-    const window3 = new THREE.Mesh(windowGeo, windowMat);
-    window3.position.set(-9.15, 5, -3);
-    window3.rotation.y = Math.PI / 2;
-    house.add(window3);
-    
-    const window4 = new THREE.Mesh(windowGeo, windowMat);
-    window4.position.set(-9.15, 5, 3);
-    window4.rotation.y = Math.PI / 2;
-    house.add(window4);
-    
-    const window5 = new THREE.Mesh(windowGeo, windowMat);
-    window5.position.set(9.15, 5, -3);
-    window5.rotation.y = -Math.PI / 2;
-    house.add(window5);
-    
-    const window6 = new THREE.Mesh(windowGeo, windowMat);
-    window6.position.set(9.15, 5, 3);
-    window6.rotation.y = -Math.PI / 2;
-    house.add(window6);
 
     house.position.set(x, 0, z);
     scene.add(house);
@@ -758,29 +813,9 @@ function createHouse(x, z, color) {
 createHouse(-40, -40, 0xffe4b5);
 
 // Right side of main street
-createHouse(40, -40, 0xffd9b3);
+createHouse(40, -50, 0xffd9b3);
 
-// Create small plaza/fountain in center
-const fountainGeo = new THREE.CylinderGeometry(2, 2.5, 1.5, 8);
-const fountainMat = new THREE.MeshStandardMaterial({ color: 0xd3d3d3 });
-const fountain = new THREE.Mesh(fountainGeo, fountainMat);
-fountain.position.set(0, 0.75, -15);
-fountain.castShadow = true;
-fountain.receiveShadow = true;
-scene.add(fountain);
 
-// Water in fountain
-const waterGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.3, 16);
-const waterMat = new THREE.MeshStandardMaterial({
-    color: 0x4169e1,
-    transparent: true,
-    opacity: 0.7,
-    emissive: 0x4169e1,
-    emissiveIntensity: 0.2
-});
-const water = new THREE.Mesh(waterGeo, waterMat);
-water.position.set(0, 1.6, -15);
-scene.add(water);
 
 // Create roads/paths
 function createRoad(x, z, width, length, rotation = 0) {
@@ -809,237 +844,34 @@ createRoad(-25, -40, 20, 4, Math.PI / 2);
 // Right side road to house
 createRoad(25, -40, 20, 4, Math.PI / 2);
 
-// Add highly realistic trees with detailed branches and organic foliage
+// Simple tree - trunk + foliage sphere
 function createTree(x, z, scale = 1) {
     const treeGroup = new THREE.Group();
 
-    // Random size and shape variation
-    const sizeVariation = 0.9 + Math.random() * 0.6; // 0.9 to 1.5
-    const finalScale = scale * sizeVariation;
-    const treeType = Math.random(); // Different tree styles
-
-    // Realistic trunk with irregular shape
-    const trunkHeight = 5 + Math.random() * 3;
-    const trunkSegments = 5;
-    const trunkGeometry = new THREE.CylinderGeometry(
-        0.4 * finalScale, 
-        0.65 * finalScale, 
-        trunkHeight * finalScale, 
-        10,
-        trunkSegments,
-        false
-    );
-    
-    // Add irregularity to trunk vertices
-    const positions = trunkGeometry.attributes.position;
-    for (let i = 0; i < positions.count; i++) {
-        const x = positions.getX(i);
-        const y = positions.getY(i);
-        const z = positions.getZ(i);
-        const noise = (Math.random() - 0.5) * 0.08 * finalScale;
-        positions.setX(i, x + noise);
-        positions.setZ(i, z + noise);
-    }
-    positions.needsUpdate = true;
-    trunkGeometry.computeVertexNormals();
-    
-    const trunkMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2d1f14,
-        roughness: 0.95,
-        metalness: 0.0,
-        flatShading: false
+    // Trunk - simple cylinder
+    const trunkGeo = new THREE.CylinderGeometry(0.4 * scale, 0.5 * scale, 4 * scale, 8);
+    const trunkMat = new THREE.MeshStandardMaterial({
+        color: 0x8b6914,
+        roughness: 0.9
     });
-    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-    trunk.position.y = (trunkHeight / 2) * finalScale;
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 2 * scale;
     trunk.castShadow = true;
     trunk.receiveShadow = true;
     treeGroup.add(trunk);
 
-    // Add main branches with sub-branches
-    const numMainBranches = 5 + Math.floor(Math.random() * 4);
-    for (let i = 0; i < numMainBranches; i++) {
-        const branchLength = (1.5 + Math.random() * 1.2) * finalScale;
-        const branchGeo = new THREE.CylinderGeometry(
-            0.06 * finalScale, 
-            0.18 * finalScale, 
-            branchLength, 
-            6
-        );
-        const branch = new THREE.Mesh(branchGeo, trunkMaterial);
-        
-        const angle = (Math.PI * 2 * i) / numMainBranches + (Math.random() - 0.5) * 0.6;
-        const heightPos = (trunkHeight * 0.45 + Math.random() * trunkHeight * 0.4) * finalScale;
-        
-        branch.position.y = heightPos;
-        branch.position.x = Math.cos(angle) * 0.35 * finalScale;
-        branch.position.z = Math.sin(angle) * 0.35 * finalScale;
-        branch.rotation.z = (Math.PI / 5.5) + Math.random() * (Math.PI / 7);
-        branch.rotation.y = angle;
-        branch.castShadow = true;
-        treeGroup.add(branch);
-        
-        // Add 2-3 sub-branches per main branch
-        const numSubBranches = 2 + Math.floor(Math.random() * 2);
-        for (let j = 0; j < numSubBranches; j++) {
-            const subBranchLength = branchLength * (0.4 + Math.random() * 0.3);
-            const subBranchGeo = new THREE.CylinderGeometry(
-                0.03 * finalScale,
-                0.08 * finalScale,
-                subBranchLength,
-                4
-            );
-            const subBranch = new THREE.Mesh(subBranchGeo, trunkMaterial);
-            
-            const subAngle = angle + (Math.random() - 0.5) * 1;
-            const branchTipX = Math.cos(angle) * branchLength * Math.sin(Math.PI / 5.5);
-            const branchTipZ = Math.sin(angle) * branchLength * Math.sin(Math.PI / 5.5);
-            const branchTipY = branchLength * Math.cos(Math.PI / 5.5);
-            
-            subBranch.position.set(
-                Math.cos(angle) * 0.35 * finalScale + branchTipX * 0.6,
-                heightPos + branchTipY * 0.6,
-                Math.sin(angle) * 0.35 * finalScale + branchTipZ * 0.6
-            );
-            subBranch.rotation.z = (Math.PI / 4) + Math.random() * (Math.PI / 6);
-            subBranch.rotation.y = subAngle;
-            subBranch.castShadow = true;
-            treeGroup.add(subBranch);
-        }
-    }
-
-    // Realistic foliage with varied colors and densities
-    const greenShades = [
-        { base: 0x1a4d2e, mid: 0x2d5016, highlight: 0x4a7c3c, light: 0x5d9652 },
-        { base: 0x0f5626, mid: 0x228B22, highlight: 0x32CD32, light: 0x90ee90 },
-        { base: 0x2a4d3a, mid: 0x355E3B, highlight: 0x4a7c4e, light: 0x6b9d6b },
-        { base: 0x3d5c3d, mid: 0x4F7942, highlight: 0x6b9d5b, light: 0x8fbc8f }
-    ];
-    const colorSet = greenShades[Math.floor(Math.random() * greenShades.length)];
-
-    const foliageY = (trunkHeight + 1.5) * finalScale;
-    
-    if (treeType < 0.5) {
-        // Dense deciduous tree (oak/maple style) with layered clusters
-        const leafClusters = 12 + Math.floor(Math.random() * 8);
-        
-        for (let i = 0; i < leafClusters; i++) {
-            const clusterSize = (1.0 + Math.random() * 1.2) * finalScale;
-            const detail = 10 + Math.floor(Math.random() * 6);
-            const leafGeo = new THREE.SphereGeometry(clusterSize, detail, detail);
-            
-            // Vary colors more naturally
-            let clusterColor;
-            const colorRand = Math.random();
-            if (colorRand < 0.3) clusterColor = colorSet.base;
-            else if (colorRand < 0.6) clusterColor = colorSet.mid;
-            else if (colorRand < 0.85) clusterColor = colorSet.highlight;
-            else clusterColor = colorSet.light;
-            
-            const leafMat = new THREE.MeshStandardMaterial({
-                color: clusterColor,
-                roughness: 0.85,
-                metalness: 0.0,
-                flatShading: true
-            });
-            const leafCluster = new THREE.Mesh(leafGeo, leafMat);
-            
-            // Organize in spherical crown
-            const phi = Math.acos((Math.random() * 2) - 1);
-            const theta = Math.random() * Math.PI * 2;
-            const radius = (1.2 + Math.random() * 1.5) * finalScale;
-            
-            leafCluster.position.set(
-                radius * Math.sin(phi) * Math.cos(theta),
-                foliageY + (Math.cos(phi) * radius * 1.2),
-                radius * Math.sin(phi) * Math.sin(theta)
-            );
-            leafCluster.castShadow = true;
-            leafCluster.receiveShadow = true;
-            treeGroup.add(leafCluster);
-        }
-        
-        // Large central crown
-        const centralLeafGeo = new THREE.SphereGeometry(2.5 * finalScale, 14, 14);
-        const centralLeafMat = new THREE.MeshStandardMaterial({
-            color: colorSet.mid,
-            roughness: 0.8,
-            metalness: 0.0
-        });
-        const centralLeaf = new THREE.Mesh(centralLeafGeo, centralLeafMat);
-        centralLeaf.position.y = foliageY + 0.8 * finalScale;
-        centralLeaf.scale.set(1, 0.85, 1); // Slightly flatten
-        centralLeaf.castShadow = true;
-        centralLeaf.receiveShadow = true;
-        treeGroup.add(centralLeaf);
-        
-    } else {
-        // Detailed coniferous tree (pine/spruce)
-        const numLayers = 6 + Math.floor(Math.random() * 2);
-        
-        for (let layer = 0; layer < numLayers; layer++) {
-            const progress = layer / numLayers;
-            const layerY = foliageY + (layer * 1.6 * finalScale);
-            const layerRadius = (4.0 - layer * 0.55) * finalScale;
-            const layerHeight = (2.2 + Math.random() * 0.6) * finalScale;
-            
-            // Main cone
-            const coneGeo = new THREE.ConeGeometry(layerRadius, layerHeight, 12);
-            let layerColor;
-            if (layer % 3 === 0) layerColor = colorSet.base;
-            else if (layer % 3 === 1) layerColor = colorSet.mid;
-            else layerColor = colorSet.highlight;
-            
-            const coneMat = new THREE.MeshStandardMaterial({
-                color: layerColor,
-                roughness: 0.9,
-                metalness: 0.0,
-                flatShading: true
-            });
-            const cone = new THREE.Mesh(coneGeo, coneMat);
-            cone.position.y = layerY;
-            cone.rotation.y = (layer * 0.4) + (Math.random() * 0.3); // Twist layers
-            cone.castShadow = true;
-            cone.receiveShadow = true;
-            treeGroup.add(cone);
-            
-            // Add drooping needle details on outer layers
-            if (layer < numLayers - 1) {
-                const needleCount = 8 + layer * 2;
-                for (let n = 0; n < needleCount; n++) {
-                    const needleAngle = (Math.PI * 2 * n) / needleCount;
-                    const needleRadius = layerRadius * 0.85;
-                    const needleSize = 0.3 * finalScale;
-                    
-                    const needleGeo = new THREE.ConeGeometry(needleSize, needleSize * 2, 4);
-                    const needle = new THREE.Mesh(needleGeo, coneMat);
-                    needle.position.set(
-                        Math.cos(needleAngle) * needleRadius,
-                        layerY - layerHeight * 0.3,
-                        Math.sin(needleAngle) * needleRadius
-                    );
-                    needle.rotation.z = Math.PI / 3;
-                    needle.rotation.y = needleAngle;
-                    treeGroup.add(needle);
-                }
-            }
-        }
-        
-        // Top spire
-        const spireGeo = new THREE.ConeGeometry(0.4 * finalScale, 1.5 * finalScale, 8);
-        const spireMat = new THREE.MeshStandardMaterial({
-            color: colorSet.highlight,
-            roughness: 0.9
-        });
-        const spire = new THREE.Mesh(spireGeo, spireMat);
-        spire.position.y = foliageY + (numLayers * 1.6 + 0.5) * finalScale;
-        spire.castShadow = true;
-        treeGroup.add(spire);
-    }
-
-    // Natural variations
-    treeGroup.rotation.y = Math.random() * Math.PI * 2;
-    treeGroup.rotation.z = (Math.random() - 0.5) * 0.1;
-    treeGroup.rotation.x = (Math.random() - 0.5) * 0.05;
+    // Foliage - simple sphere
+    const foliageGeo = new THREE.SphereGeometry(2.5 * scale, 8, 8);
+    const foliageMat = new THREE.MeshStandardMaterial({
+        color: 0x2d5016,
+        roughness: 0.8,
+        metalness: 0.0
+    });
+    const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+    foliage.position.y = 5 * scale;
+    foliage.castShadow = true;
+    foliage.receiveShadow = true;
+    treeGroup.add(foliage);
 
     treeGroup.position.set(x, 0, z);
     scene.add(treeGroup);
@@ -1077,28 +909,25 @@ treePositions.forEach(pos => {
 function createComputer(x, z) {
     const computer = new THREE.Group();
 
-    // Large Visible Desk - Simple brown rectangle (1.5x bigger)
-    const deskGeometry = new THREE.BoxGeometry(18, 2.25, 9);
+    // Desk - Simple brown rectangle
+    const deskGeometry = new THREE.BoxGeometry(12, 1.5, 6);
     const deskMaterial = new THREE.MeshStandardMaterial({ color: 0xCD853F, metalness: 0.3, roughness: 0.7 });
     const desk = new THREE.Mesh(deskGeometry, deskMaterial);
-    desk.position.y = 1.125;
+    desk.position.y = 0.75;
     desk.castShadow = true;
     desk.receiveShadow = true;
     computer.add(desk);
 
-    // Large Monitor (1.5x bigger)
-    const monitorGeometry = new THREE.BoxGeometry(8.25, 6, 0.75);
+    // Monitor
+    const monitorGeometry = new THREE.BoxGeometry(5.5, 4, 0.5);
     const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
     const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
-    monitor.position.set(0, 5.25, 0);
+    monitor.position.set(0, 4, 0);
     monitor.castShadow = true;
-    monitor.receiveShadow = true;
     computer.add(monitor);
 
-    // Bright Screen (very visible) (1.5x bigger)
-    const screenGeometry = new THREE.BoxGeometry(7.5, 5.7, 0.6);
-
-    // Create initial browser UI for this monitor
+    // Screen with browser UI
+    const screenGeometry = new THREE.BoxGeometry(5, 3.6, 0.4);
     const initialBrowserUI = new BrowserUI(1024, 768);
     initialBrowserUI.draw();
 
@@ -1108,30 +937,13 @@ function createComputer(x, z) {
         emissiveIntensity: 0.2
     });
     const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-    screen.position.set(0, 5.25, 0.45);
+    screen.position.set(0, 4, 0.3);
     screen.castShadow = true;
     screen.userData = { isMonitor: true };
     clickableMonitors.push(screen);
     computer.add(screen);
 
-    // Store the browser UI for this monitor
     monitorBrowsers.set(screen, initialBrowserUI);
-
-    // Keyboard (1.5x bigger)
-    const keyboardGeometry = new THREE.BoxGeometry(7.5, 0.6, 3);
-    const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
-    const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
-    keyboard.position.set(0, 2.25, 2.25);
-    keyboard.castShadow = true;
-    computer.add(keyboard);
-
-    // Mouse (1.5x bigger)
-    const mouseGeometry = new THREE.BoxGeometry(1.05, 0.6, 2.25);
-    const mouseMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
-    const mouse01 = new THREE.Mesh(mouseGeometry, mouseMaterial);
-    mouse01.position.set(5.25, 2.4, 3);
-    mouse01.castShadow = true;
-    computer.add(mouse01);
 
     computer.position.set(x, 0, z);
     scene.add(computer);
@@ -1148,147 +960,34 @@ deskLight.castShadow = true;
 scene.add(deskLight);
 
 // Create Product Table function
-function createProductTable(x, z) {
-    const table = new THREE.Group();
 
-    // Table surface (wooden)
-    const tableGeometry = new THREE.BoxGeometry(15, 1, 8);
-    const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
-    const tableSurface = new THREE.Mesh(tableGeometry, tableMaterial);
-    tableSurface.position.y = 3;
-    tableSurface.castShadow = true;
-    tableSurface.receiveShadow = true;
-    table.add(tableSurface);
 
-    // Table legs
-    const legGeometry = new THREE.BoxGeometry(0.8, 3, 0.8);
-    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
 
-    const positions = [
-        [-6.5, 1.5, 3.5],
-        [6.5, 1.5, 3.5],
-        [-6.5, 1.5, -3.5],
-        [6.5, 1.5, -3.5]
-    ];
-
-    positions.forEach(pos => {
-        const leg = new THREE.Mesh(legGeometry, legMaterial);
-        leg.position.set(pos[0], pos[1], pos[2]);
-        leg.castShadow = true;
-        table.add(leg);
-    });
-
-    // Create products with data
-    const productPositions = [
-        { x: -5, y: 4.5, z: 2, size: [2, 2, 2] },
-        { x: -2, y: 4.75, z: 2, size: [1.5, 2.5, 1.5] },
-        { x: 1, y: 4.25, z: 2, size: [2.5, 1.5, 2] },
-        { x: 4.5, y: 4.4, z: 2, size: [1.8, 1.8, 1.8] },
-        { x: -4, y: 4.1, z: -1.5, size: [2, 1.2, 2] },
-        { x: -1, y: 4.5, z: -1.5, size: [1.5, 2, 1.5] },
-        { x: 2, y: 4.25, z: -1.5, size: [2.2, 1.5, 1.8] },
-        { x: 5, y: 4.3, z: -1.5, size: [1.6, 1.6, 1.6] }
-    ];
-
-    const productColors = [0xff4444, 0x4444ff, 0x44ff44, 0xffff44, 0xff8844, 0xff44ff, 0x44ffff, 0xff88cc];
-
-    productPositions.forEach((pos, index) => {
-        const productGeo = new THREE.BoxGeometry(...pos.size);
-        const productMat = new THREE.MeshStandardMaterial({
-            color: productColors[index],
-            emissive: productColors[index],
-            emissiveIntensity: 0.2
-        });
-        const product = new THREE.Mesh(productGeo, productMat);
-        product.position.set(pos.x, pos.y, pos.z);
-        product.castShadow = true;
-        product.userData = { isProduct: true, productIndex: index };
-        clickableProducts.push(product);
-        table.add(product);
-    });
-
-    // Sign on front of table
-    const signGeo = new THREE.BoxGeometry(8, 1.5, 0.2);
-    const signMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const sign = new THREE.Mesh(signGeo, signMat);
-    sign.position.set(0, 2, 4.1);
-    sign.castShadow = true;
-    table.add(sign);
-
-    // Sign text (using canvas texture)
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 512, 128);
-    ctx.fillStyle = '#333333';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('PRODUCTOS EN VENTA', 256, 80);
-
-    const textTexture = new THREE.CanvasTexture(canvas);
-    const textGeo = new THREE.PlaneGeometry(7.5, 1.2);
-    const textMat = new THREE.MeshStandardMaterial({ map: textTexture });
-    const textPlane = new THREE.Mesh(textGeo, textMat);
-    textPlane.position.set(0, 2, 4.2);
-    table.add(textPlane);
-
-    table.position.set(x, 0, z);
-    scene.add(table);
-    return table;
-}
-
-// Create product table - moved further back
-const productTable = createProductTable(0, -65);
-
-// Add light above product table
-const tableLight = new THREE.PointLight(0xffffff, 3, 50);
-tableLight.position.set(0, 10, -65);
-tableLight.castShadow = true;
-scene.add(tableLight);
 
 // Create White Desktop PC Desk function
 function createWhiteDesktop(x, z) {
     const desktop = new THREE.Group();
 
-    // Desk (1.5x bigger)
-    const deskGeometry = new THREE.BoxGeometry(12, 1.5, 5.25);
+    // Desk - white/light color
+    const deskGeometry = new THREE.BoxGeometry(10, 1.2, 5);
     const deskMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
     const desk = new THREE.Mesh(deskGeometry, deskMaterial);
-    desk.position.y = 0.75;
+    desk.position.y = 0.6;
     desk.castShadow = true;
     desk.receiveShadow = true;
     desktop.add(desk);
 
-    // White Desktop PC Tower (on the right side of desk) (1.5x bigger)
-    const pcGeometry = new THREE.BoxGeometry(2.25, 5.25, 1.5);
-    const pcMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const pc = new THREE.Mesh(pcGeometry, pcMaterial);
-    pc.position.set(4.5, 3.3, 0);
-    pc.castShadow = true;
-    desktop.add(pc);
-
-    // PC Front Panel (darker) (1.5x bigger)
-    const panelGeometry = new THREE.BoxGeometry(2.1, 1.8, 0.225);
-    const panelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-    const panel = new THREE.Mesh(panelGeometry, panelMaterial);
-    panel.position.set(4.5, 1.95, 0.75);
-    panel.castShadow = true;
-    desktop.add(panel);
-
-    // Monitor (1.5x bigger)
-    const monitorGeometry = new THREE.BoxGeometry(6, 4.5, 0.6);
+    // Monitor
+    const monitorGeometry = new THREE.BoxGeometry(5, 3.5, 0.5);
     const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
     const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
-    monitor.position.set(-2.25, 4.5, 0);
+    monitor.position.set(-1.5, 3.5, 0);
     monitor.castShadow = true;
     desktop.add(monitor);
 
-    // Monitor Screen (1.5x bigger)
-    const screenGeometry = new THREE.BoxGeometry(5.7, 4.2, 0.45);
+    // Monitor Screen
+    const screenGeometry = new THREE.BoxGeometry(4.5, 3.1, 0.35);
 
-    // Create initial browser UI for this monitor
     const initialBrowserUI2 = new BrowserUI(1024, 768);
     initialBrowserUI2.draw();
 
@@ -1298,30 +997,13 @@ function createWhiteDesktop(x, z) {
         emissiveIntensity: 0.2
     });
     const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-    screen.position.set(-2.25, 4.5, 0.375);
+    screen.position.set(-1.5, 3.5, 0.3);
     screen.castShadow = true;
     screen.userData = { isMonitor: true };
     clickableMonitors.push(screen);
     desktop.add(screen);
 
-    // Store the browser UI for this monitor
     monitorBrowsers.set(screen, initialBrowserUI2);
-
-    // Keyboard (1.5x bigger)
-    const keyboardGeometry = new THREE.BoxGeometry(6, 0.6, 2.25);
-    const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
-    const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
-    keyboard.position.set(-2.25, 1.5, 1.95);
-    keyboard.castShadow = true;
-    desktop.add(keyboard);
-
-    // Mouse (1.5x bigger)
-    const mouseGeometry = new THREE.BoxGeometry(0.9, 0.6, 1.8);
-    const mouseMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd });
-    const mouse = new THREE.Mesh(mouseGeometry, mouseMaterial);
-    mouse.position.set(0.75, 1.65, 2.4);
-    mouse.castShadow = true;
-    desktop.add(mouse);
 
     desktop.position.set(x, 0, z);
     scene.add(desktop);
@@ -1336,6 +1018,411 @@ const desktopLight = new THREE.PointLight(0x0066ff, 2, 50);
 desktopLight.position.set(30, 10, 5);
 desktopLight.castShadow = true;
 scene.add(desktopLight);
+
+// Create brown rectangular table
+const brownTable = createBrownTable(-50, -20);
+
+// Add light above brown table
+const brownTableLight = new THREE.PointLight(0xffa500, 2.5, 50);
+brownTableLight.position.set(-50, 10, -20);
+brownTableLight.castShadow = true;
+scene.add(brownTableLight);
+
+// Create second table with salad
+const saladTable = createSaladTable(-34, -20);
+
+// Add light above salad table
+const saladTableLight = new THREE.PointLight(0x88cc88, 2.1, 45);
+saladTableLight.position.set(-34, 10, -20);
+saladTableLight.castShadow = true;
+scene.add(saladTableLight);
+
+// Create a simple brown rectangular table
+function createBrownTable(x, z) {
+    const table = new THREE.Group();
+
+    // Table surface (rectangular, brown)
+    const tableGeometry = new THREE.BoxGeometry(12, 1, 6);
+    const tableMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8B4513,  // Brown color
+        roughness: 0.7,
+        metalness: 0.1
+    });
+    const tableSurface = new THREE.Mesh(tableGeometry, tableMaterial);
+    tableSurface.position.y = 3;
+    tableSurface.castShadow = true;
+    tableSurface.receiveShadow = true;
+    table.add(tableSurface);
+
+    // Table legs (4 legs)
+    const legGeometry = new THREE.BoxGeometry(0.6, 3, 0.6);
+    const legMaterial = new THREE.MeshStandardMaterial({
+        color: 0x654321
+    });
+
+    const positions = [
+        [-5, 1.5, 2.5],
+        [5, 1.5, 2.5],
+        [-5, 1.5, -2.5],
+        [5, 1.5, -2.5]
+    ];
+
+    positions.forEach(pos => {
+        const leg = new THREE.Mesh(legGeometry, legMaterial);
+        leg.position.set(pos[0], pos[1], pos[2]);
+        leg.castShadow = true;
+        table.add(leg);
+    });
+
+    // Blue folded shirt on table (store-style display)
+    const shirtGroup = new THREE.Group();
+
+    const blueShirtMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1f5fd1,
+        roughness: 0.92,
+        metalness: 0.0
+    });
+    const blueShadowMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1847a1,
+        roughness: 0.96,
+        metalness: 0.0
+    });
+
+    // Base body
+    const baseGeometry = new THREE.BoxGeometry(3.7, 0.1, 2.5);
+    const shirtBase = new THREE.Mesh(baseGeometry, blueShirtMaterial);
+    shirtBase.castShadow = true;
+    shirtBase.receiveShadow = true;
+    shirtGroup.add(shirtBase);
+
+    // Sleeves folded inward
+    const sleeveGeometry = new THREE.BoxGeometry(1.05, 0.08, 0.95);
+    const leftSleeve = new THREE.Mesh(sleeveGeometry, blueShirtMaterial);
+    leftSleeve.position.set(-1.1, 0.03, 0.45);
+    leftSleeve.rotation.y = 0.45;
+    leftSleeve.castShadow = true;
+    shirtGroup.add(leftSleeve);
+
+    const rightSleeve = new THREE.Mesh(sleeveGeometry, blueShirtMaterial);
+    rightSleeve.position.set(1.1, 0.03, 0.45);
+    rightSleeve.rotation.y = -0.45;
+    rightSleeve.castShadow = true;
+    shirtGroup.add(rightSleeve);
+
+    // Side folds
+    const sideFoldGeometry = new THREE.BoxGeometry(0.62, 0.07, 2.2);
+    const leftFold = new THREE.Mesh(sideFoldGeometry, blueShadowMaterial);
+    leftFold.position.set(-1.16, 0.08, 0.03);
+    leftFold.castShadow = true;
+    shirtGroup.add(leftFold);
+
+    const rightFold = new THREE.Mesh(sideFoldGeometry, blueShadowMaterial);
+    rightFold.position.set(1.16, 0.08, 0.03);
+    rightFold.castShadow = true;
+    shirtGroup.add(rightFold);
+
+    // Bottom fold layer
+    const bottomFoldGeometry = new THREE.BoxGeometry(2.9, 0.08, 0.9);
+    const bottomFold = new THREE.Mesh(bottomFoldGeometry, blueShadowMaterial);
+    bottomFold.position.set(0, 0.12, -0.76);
+    bottomFold.castShadow = true;
+    shirtGroup.add(bottomFold);
+
+    // Collar and placket
+    const collarMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf3f6ff,
+        roughness: 0.8,
+        metalness: 0.0
+    });
+    const neckGeometry = new THREE.TorusGeometry(0.38, 0.05, 12, 24);
+    const neck = new THREE.Mesh(neckGeometry, collarMaterial);
+    neck.position.set(0, 0.1, 0.92);
+    neck.rotation.x = Math.PI / 2;
+    neck.castShadow = true;
+    shirtGroup.add(neck);
+
+    const placketGeometry = new THREE.BoxGeometry(0.2, 0.03, 0.72);
+    const placket = new THREE.Mesh(placketGeometry, blueShadowMaterial);
+    placket.position.set(0, 0.11, 0.26);
+    shirtGroup.add(placket);
+
+    // Small chest logo patch
+    const logoGeometry = new THREE.BoxGeometry(0.58, 0.03, 0.58);
+    const logoMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.0 });
+    const logoPatch = new THREE.Mesh(logoGeometry, logoMaterial);
+    logoPatch.position.set(0.78, 0.1, 0.12);
+    logoPatch.castShadow = true;
+    shirtGroup.add(logoPatch);
+
+    // Position shirt on top of table
+    shirtGroup.position.set(0, 3.56, 0.45);
+    shirtGroup.rotation.y = 0.08;
+    table.add(shirtGroup);
+
+    // Second folded shirt in red
+    const redShirtGroup = shirtGroup.clone(true);
+    redShirtGroup.traverse((child) => {
+        if (child.isMesh && child.material) {
+            child.material = child.material.clone();
+            if (child.material.color) {
+                const currentColor = child.material.color.getHex();
+                if (currentColor === 0x1f5fd1) {
+                    child.material.color.setHex(0xc62828);
+                } else if (currentColor === 0x1847a1) {
+                    child.material.color.setHex(0x8e1b1b);
+                }
+            }
+        }
+    });
+    redShirtGroup.position.set(-2.9, 3.56, 0.35);
+    redShirtGroup.rotation.y = -0.18;
+    table.add(redShirtGroup);
+
+    // Basketball on the same table
+    const basketballGroup = new THREE.Group();
+
+    const ballCanvas = document.createElement('canvas');
+    ballCanvas.width = 1024;
+    ballCanvas.height = 512;
+    const ballCtx = ballCanvas.getContext('2d');
+
+    // Orange base
+    ballCtx.fillStyle = '#d97732';
+    ballCtx.fillRect(0, 0, ballCanvas.width, ballCanvas.height);
+
+    // Grain texture
+    for (let i = 0; i < 7000; i++) {
+        const x = Math.random() * ballCanvas.width;
+        const y = Math.random() * ballCanvas.height;
+        const alpha = 0.03 + Math.random() * 0.09;
+        ballCtx.fillStyle = `rgba(96,52,24,${alpha})`;
+        ballCtx.beginPath();
+        ballCtx.arc(x, y, 0.8 + Math.random() * 0.9, 0, Math.PI * 2);
+        ballCtx.fill();
+    }
+
+    // Soft shading for realistic volume
+    const shade = ballCtx.createRadialGradient(
+        ballCanvas.width * 0.35,
+        ballCanvas.height * 0.33,
+        ballCanvas.width * 0.08,
+        ballCanvas.width * 0.5,
+        ballCanvas.height * 0.5,
+        ballCanvas.width * 0.65
+    );
+    shade.addColorStop(0, 'rgba(255,255,255,0.12)');
+    shade.addColorStop(0.65, 'rgba(0,0,0,0.0)');
+    shade.addColorStop(1, 'rgba(0,0,0,0.20)');
+    ballCtx.fillStyle = shade;
+    ballCtx.fillRect(0, 0, ballCanvas.width, ballCanvas.height);
+
+    // Seam lines
+    ballCtx.strokeStyle = '#141414';
+    ballCtx.lineWidth = 17;
+    ballCtx.lineCap = 'round';
+    ballCtx.lineJoin = 'round';
+
+    ballCtx.beginPath();
+    ballCtx.moveTo(ballCanvas.width * 0.50, 0);
+    ballCtx.lineTo(ballCanvas.width * 0.50, ballCanvas.height);
+    ballCtx.stroke();
+
+    ballCtx.beginPath();
+    ballCtx.moveTo(0, ballCanvas.height * 0.52);
+    ballCtx.lineTo(ballCanvas.width, ballCanvas.height * 0.52);
+    ballCtx.stroke();
+
+    ballCtx.beginPath();
+    ballCtx.moveTo(ballCanvas.width * 0.08, ballCanvas.height * 0.10);
+    ballCtx.bezierCurveTo(
+        ballCanvas.width * 0.29,
+        ballCanvas.height * 0.20,
+        ballCanvas.width * 0.29,
+        ballCanvas.height * 0.82,
+        ballCanvas.width * 0.08,
+        ballCanvas.height * 0.92
+    );
+    ballCtx.stroke();
+
+    ballCtx.beginPath();
+    ballCtx.moveTo(ballCanvas.width * 0.92, ballCanvas.height * 0.10);
+    ballCtx.bezierCurveTo(
+        ballCanvas.width * 0.71,
+        ballCanvas.height * 0.20,
+        ballCanvas.width * 0.71,
+        ballCanvas.height * 0.82,
+        ballCanvas.width * 0.92,
+        ballCanvas.height * 0.92
+    );
+    ballCtx.stroke();
+
+    const ballTexture = new THREE.CanvasTexture(ballCanvas);
+    ballTexture.needsUpdate = true;
+
+    const basketballMaterial = new THREE.MeshStandardMaterial({
+        map: ballTexture,
+        roughness: 0.86,
+        metalness: 0.0
+    });
+
+    const ballGeometry = new THREE.SphereGeometry(0.8, 30, 30);
+    const basketball = new THREE.Mesh(ballGeometry, basketballMaterial);
+    basketball.castShadow = true;
+    basketball.receiveShadow = true;
+    basketballGroup.add(basketball);
+
+    basketballGroup.position.set(2.6, 4.31, -0.3);
+    basketballGroup.rotation.y = 0.35;
+    table.add(basketballGroup);
+
+    table.position.set(x, 0, z);
+    scene.add(table);
+    return table;
+}
+
+// Create brown table with a salad bowl
+function createSaladTable(x, z) {
+    const table = new THREE.Group();
+
+    const tableGeometry = new THREE.BoxGeometry(12, 1, 6);
+    const tableMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8B4513,
+        roughness: 0.72,
+        metalness: 0.08
+    });
+    const tableSurface = new THREE.Mesh(tableGeometry, tableMaterial);
+    tableSurface.position.y = 3;
+    tableSurface.castShadow = true;
+    tableSurface.receiveShadow = true;
+    table.add(tableSurface);
+
+    const legGeometry = new THREE.BoxGeometry(0.6, 3, 0.6);
+    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+    const positions = [
+        [-5, 1.5, 2.5],
+        [5, 1.5, 2.5],
+        [-5, 1.5, -2.5],
+        [5, 1.5, -2.5]
+    ];
+
+    positions.forEach(pos => {
+        const leg = new THREE.Mesh(legGeometry, legMaterial);
+        leg.position.set(pos[0], pos[1], pos[2]);
+        leg.castShadow = true;
+        table.add(leg);
+    });
+
+    const saladGroup = new THREE.Group();
+
+    // Bowl
+    const bowlOuterMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf5f5f5,
+        roughness: 0.45,
+        metalness: 0.05
+    });
+    const bowlInnerMaterial = new THREE.MeshStandardMaterial({
+        color: 0xe9ecef,
+        roughness: 0.5,
+        metalness: 0.02,
+        side: THREE.DoubleSide
+    });
+
+    const bowlOuter = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.35, 1.05, 0.55, 40, 1, true),
+        bowlOuterMaterial
+    );
+    bowlOuter.position.y = 0;
+    bowlOuter.castShadow = true;
+    bowlOuter.receiveShadow = true;
+    saladGroup.add(bowlOuter);
+
+    const bowlInner = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.24, 0.98, 0.44, 40, 1, true),
+        bowlInnerMaterial
+    );
+    bowlInner.position.y = 0.06;
+    saladGroup.add(bowlInner);
+
+    const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(1.34, 0.06, 12, 48),
+        bowlOuterMaterial
+    );
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.28;
+    rim.castShadow = true;
+    saladGroup.add(rim);
+
+    // Lettuce base
+    const lettuceMaterial = new THREE.MeshStandardMaterial({
+        color: 0x5ba64a,
+        roughness: 0.95,
+        metalness: 0.0
+    });
+    const darkLettuceMaterial = new THREE.MeshStandardMaterial({
+        color: 0x3f7f34,
+        roughness: 0.95,
+        metalness: 0.0
+    });
+
+    for (let i = 0; i < 20; i++) {
+        const leaf = new THREE.Mesh(
+            new THREE.SphereGeometry(0.23 + Math.random() * 0.08, 12, 12),
+            i % 3 === 0 ? darkLettuceMaterial : lettuceMaterial
+        );
+        const angle = (i / 20) * Math.PI * 2;
+        const radius = 0.4 + Math.random() * 0.58;
+        leaf.position.set(
+            Math.cos(angle) * radius,
+            0.33 + Math.random() * 0.22,
+            Math.sin(angle) * radius
+        );
+        leaf.scale.set(1.0, 0.65, 1.0);
+        leaf.castShadow = true;
+        saladGroup.add(leaf);
+    }
+
+    // Tomato pieces
+    const tomatoMaterial = new THREE.MeshStandardMaterial({
+        color: 0xd63333,
+        roughness: 0.65,
+        metalness: 0.02
+    });
+    for (let i = 0; i < 6; i++) {
+        const tomato = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), tomatoMaterial);
+        tomato.position.set(
+            -0.65 + Math.random() * 1.3,
+            0.46 + Math.random() * 0.16,
+            -0.65 + Math.random() * 1.3
+        );
+        tomato.castShadow = true;
+        saladGroup.add(tomato);
+    }
+
+    // Cucumber slices
+    const cucumberMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8bcf6b,
+        roughness: 0.8,
+        metalness: 0.0
+    });
+    for (let i = 0; i < 5; i++) {
+        const cucumber = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 20), cucumberMaterial);
+        cucumber.rotation.x = Math.PI / 2;
+        cucumber.position.set(
+            -0.55 + Math.random() * 1.1,
+            0.44 + Math.random() * 0.12,
+            -0.55 + Math.random() * 1.1
+        );
+        cucumber.castShadow = true;
+        saladGroup.add(cucumber);
+    }
+
+    saladGroup.position.set(0.4, 3.57, -0.1);
+    table.add(saladGroup);
+
+    table.position.set(x, 0, z);
+    scene.add(table);
+    return table;
+}
 
 // Create Avatar function
 function createAvatar(x, z, color) {
@@ -1470,13 +1557,11 @@ for (let i = 0; i < 8; i++) {
 }
 */
 
-// Create local player avatar
+// Create local player avatar (will be created when joining game)
 try {
-    localPlayer = createAvatar(0, 30, 0x00ff00); // Green color for local player
-    localPlayer.position.y = 0;
-    // Don't set name here - do it when game starts
+    localPlayer = null; // Will be created when game starts
 } catch (e) {
-    console.error('Error creating local player avatar:', e.message);
+    console.error('Error initializing player:', e.message);
 }
 
 // Third-person camera controls
@@ -1598,6 +1683,15 @@ document.addEventListener('mousemove', (e) => {
         cameraAngleV = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraAngleV - e.movementY * 0.002));
     }
 });
+
+// Create local player avatar on page load
+try {
+    localPlayer = createAvatar(0, 30, 0x00ff00); // Green color for local player
+    localPlayer.position.y = 0;
+    console.log('Local player avatar created');
+} catch (e) {
+    console.error('Error creating local player avatar:', e.message);
+}
 
 // Click to start - MINIMAL VERSION
 
@@ -1900,7 +1994,7 @@ function createPlayerAvatar(playerId, color) {
 }
 
 function applyLocalName() {
-    if (!hasInit || !ws || ws.readyState !== WebSocket.OPEN || nameSent) {
+    if (!hasInit || !ws || ws.readyState !== WebSocket.OPEN || nameSent || !localPlayer) {
         return;
     }
     const fallbackName = localPlayerId ? `Player ${localPlayerId.substr(0, 6)}` : 'Player';
@@ -2024,7 +2118,7 @@ function connectMultiplayer() {
 // Send position updates
 let lastPositionUpdate = 0;
 function sendPositionUpdate() {
-    if (ws && ws.readyState === WebSocket.OPEN && Date.now() - lastPositionUpdate > 50) {
+    if (ws && ws.readyState === WebSocket.OPEN && localPlayer && Date.now() - lastPositionUpdate > 50) {
         ws.send(JSON.stringify({
             type: 'position',
             position: {
@@ -2059,8 +2153,14 @@ function applyChatFilter() {
     items.forEach((item) => {
         const isPrivate = item.dataset.private === 'true';
         const isSystem = item.dataset.system === 'true';
+        const fromPlayerId = item.dataset.from || '';
+        const toPlayerId = item.dataset.to || '';
+        const matchesSelectedConversation = !selectedPlayer ||
+            fromPlayerId === selectedPlayer ||
+            toPlayerId === selectedPlayer;
+
         if (currentChatTab === 'private') {
-            item.style.display = isPrivate ? 'block' : 'none';
+            item.style.display = isPrivate && matchesSelectedConversation ? 'block' : 'none';
         } else {
             item.style.display = isSystem || !isPrivate ? 'block' : 'none';
         }
@@ -2101,9 +2201,18 @@ setInterval(updateConnectionStatus, 2000);
 
 function addChatMessage(message) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'chatMessage';
+    messageDiv.className = 'chatMessage bubble';
     messageDiv.dataset.private = message.private ? 'true' : 'false';
     messageDiv.dataset.system = message.playerId === 'system' ? 'true' : 'false';
+    messageDiv.dataset.from = message.playerId || '';
+    messageDiv.dataset.to = message.toPlayerId || '';
+
+    const isOwnMessage = message.playerId === localPlayerId;
+    if (isOwnMessage) {
+        messageDiv.classList.add('self');
+    } else {
+        messageDiv.classList.add('other');
+    }
 
     if (message.private) {
         messageDiv.classList.add('private');
@@ -2118,7 +2227,15 @@ function addChatMessage(message) {
             minute: '2-digit'
         });
 
-        const privateLabel = message.private ? '<strong>[Private]</strong> ' : '';
+        let privateLabel = '';
+        if (message.private) {
+            const targetPlayerId = message.toPlayerId || '';
+            if (message.playerId === localPlayerId && targetPlayerId) {
+                privateLabel = `<strong>[Privado → ${escapeHtml(getPlayerDisplayName(targetPlayerId))}]</strong> `;
+            } else if (message.playerId !== localPlayerId) {
+                privateLabel = '<strong>[Privado]</strong> ';
+            }
+        }
 
         messageDiv.innerHTML = `
             ${privateLabel}<span class="username">${message.username}:</span>
@@ -2128,7 +2245,8 @@ function addChatMessage(message) {
     }
 
     if (message.playerId && message.playerId !== 'system') {
-        showSpeechBubble(message.playerId, message.message);
+        const bubbleText = message.private ? `🔒 ${message.message}` : message.message;
+        showSpeechBubble(message.playerId, bubbleText);
     }
 
     chatMessages.appendChild(messageDiv);
@@ -2216,7 +2334,11 @@ chatInput.addEventListener('keydown', (e) => {
 chatInput.addEventListener('input', () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     if (!isTyping) {
-        ws.send(JSON.stringify({ type: 'typing', isTyping: true }));
+        const typingData = { type: 'typing', isTyping: true };
+        if (selectedPlayer) {
+            typingData.toPlayerId = selectedPlayer;
+        }
+        ws.send(JSON.stringify(typingData));
         isTyping = true;
     }
     if (typingTimer) {
@@ -2224,7 +2346,11 @@ chatInput.addEventListener('input', () => {
     }
     typingTimer = setTimeout(() => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'typing', isTyping: false }));
+            const typingData = { type: 'typing', isTyping: false };
+            if (selectedPlayer) {
+                typingData.toPlayerId = selectedPlayer;
+            }
+            ws.send(JSON.stringify(typingData));
         }
         isTyping = false;
         typingTimer = null;
@@ -2255,12 +2381,12 @@ function animate() {
 
     const delta = clock.getDelta();
 
-    if (gameStarted) {
+    if (gameStarted && localPlayer) {
         // Apply gravity
         velocity.y += gravity;
 
         // Calculate movement direction based on camera angle
-        direction.z = Number(keys.forward) - Number(keys.backward);
+        direction.z = Number(keys.backward) - Number(keys.forward);
         direction.x = Number(keys.right) - Number(keys.left);
         direction.normalize();
 
@@ -2289,19 +2415,21 @@ function animate() {
         }
 
         // Update camera to follow player (third-person)
-        const idealOffset = new THREE.Vector3(
-            Math.sin(cameraAngleH) * Math.cos(cameraAngleV) * cameraDistance,
-            Math.sin(cameraAngleV) * cameraDistance + 10,
-            Math.cos(cameraAngleH) * Math.cos(cameraAngleV) * cameraDistance
-        );
+        if (localPlayer) {
+            const idealOffset = new THREE.Vector3(
+                Math.sin(cameraAngleH) * Math.cos(cameraAngleV) * cameraDistance,
+                Math.sin(cameraAngleV) * cameraDistance + 10,
+                Math.cos(cameraAngleH) * Math.cos(cameraAngleV) * cameraDistance
+            );
 
-        camera.position.x = localPlayer.position.x + idealOffset.x;
-        camera.position.y = localPlayer.position.y + idealOffset.y;
-        camera.position.z = localPlayer.position.z + idealOffset.z;
-        camera.lookAt(localPlayer.position.x, localPlayer.position.y + 5, localPlayer.position.z);
+            camera.position.x = localPlayer.position.x + idealOffset.x;
+            camera.position.y = localPlayer.position.y + idealOffset.y;
+            camera.position.z = localPlayer.position.z + idealOffset.z;
+            camera.lookAt(localPlayer.position.x, localPlayer.position.y + 5, localPlayer.position.z);
 
-        // Send position update to server
-        sendPositionUpdate();
+            // Send position update to server
+            sendPositionUpdate();
+        }
     }
 
     renderer.render(scene, camera);
