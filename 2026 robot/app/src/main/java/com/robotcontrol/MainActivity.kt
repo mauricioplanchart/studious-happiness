@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnRight: Button
     private lateinit var btnStop: Button
     private lateinit var btnFaceMode: Button
+    private lateinit var btnChat: Button
     private lateinit var spinnerDevices: Spinner
     private lateinit var seekBarSpeed: SeekBar
     private lateinit var tvStatus: TextView
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         btnRight = findViewById(R.id.btnRight)
         btnStop = findViewById(R.id.btnStop)
         btnFaceMode = findViewById(R.id.btnFaceMode)
+        btnChat = findViewById(R.id.btnChat)
         spinnerDevices = findViewById(R.id.spinnerDevices)
         seekBarSpeed = findViewById(R.id.seekBarSpeed)
         tvStatus = findViewById(R.id.tvStatus)
@@ -123,6 +125,10 @@ class MainActivity : AppCompatActivity() {
         
         btnFaceMode.setOnClickListener {
             openFaceMode()
+        }
+        
+        btnChat.setOnClickListener {
+            openChat()
         }
         
         seekBarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -242,6 +248,11 @@ class MainActivity : AppCompatActivity() {
     private fun openFaceMode() {
         val intent = Intent(this, RobotFaceActivity::class.java)
         intent.putExtra(RobotFaceActivity.EXTRA_EXPRESSION, "HAPPY")
+        startActivity(intent)
+    }
+    
+    private fun openChat() {
+        val intent = Intent(this, ChatActivity::class.java)
         startActivity(intent)
     }
     

@@ -10,6 +10,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Internet permission for AI service -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Voice and microphone permissions -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Bluetooth features -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
 
@@ -35,6 +41,11 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

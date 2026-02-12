@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#1E1E1E"
+    android:padding="16dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Chat con el Robot"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Status -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Robot conectado"
+        android:textSize="14sp"
+        android:textColor="#4CAF50"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Messages List -->
+    <ListView
+        android:id="@+id/lvMessages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="8dp"
+        android:layout_marginBottom="12dp"
+        android:background="#2E2E2E"
+        android:padding="12dp" />
+
+    <!-- Input Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Message Input -->
+        <EditText
+            android:id="@+id/etMessage"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:hint="Escribe tu mensaje..."
+            android:textColorHint="#B0B0B0"
+            android:textColor="#FFFFFF"
+            android:background="#2E2E2E"
+            android:padding="12dp"
+            android:layout_marginEnd="8dp"
+            android:inputType="text" />
+
+        <!-- Microphone Button -->
+        <Button
+            android:id="@+id/btnMicrophone"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:text="🎤"
+            android:textSize="24sp"
+            android:backgroundTint="#FF9800"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Send Button -->
+        <Button
+            android:id="@+id/btnSend"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:text="Enviar"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#4CAF50"
+            android:minWidth="80dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

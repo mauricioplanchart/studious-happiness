@@ -1,5 +1,6 @@
 package com.robotcontrol
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
@@ -7,6 +8,7 @@ import java.io.IOException
 import java.io.OutputStream
 import java.util.*
 
+@SuppressLint("MissingPermission")
 class BluetoothService(
     private val bluetoothAdapter: BluetoothAdapter,
     private val connectionCallback: (Boolean) -> Unit
